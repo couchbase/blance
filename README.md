@@ -11,7 +11,7 @@ inclusion/exclusion policies, heterogeneous partition weights,
 heterogeneous node weights, partition stickiness control, and multi-master
 support.
 
-[![Build Status](https://travis-ci.org/couchbaselabs/blance.svg)](https://travis-ci.org/couchbaselabs/blance) [![GoDoc](https://godoc.org/github.com/couchbaselabs/blance?status.svg)](https://godoc.org/github.com/couchbaselabs/blance) [![Coverage Status](https://coveralls.io/repos/couchbaselabs/blance/badge.svg?branch=master&service=github)](https://coveralls.io/github/couchbaselabs/blance?branch=master)
+[![Build Status](https://travis-ci.org/couchbase/blance.svg)](https://travis-ci.org/couchbase/blance) [![GoDoc](https://godoc.org/github.com/couchbase/blance?status.svg)](https://godoc.org/github.com/couchbase/blance) [![Coverage Status](https://coveralls.io/repos/couchbase/blance/badge.svg?branch=master&service=github)](https://coveralls.io/github/couchbase/blance?branch=master)
 
 LICENSE: Apache 2.0
 
