@@ -471,8 +471,17 @@ func (r *partitionSorter) Less(i, j int) bool {
 		if ei[x] < ej[x] {
 			return true
 		}
+		if ei[x] > ej[x] {
+			return false
+		}
 	}
-	return len(ei) < len(ej)
+	if len(ei) < len(ej) {
+		return true
+	}
+	if len(ei) > len(ej) {
+		return false
+	}
+	return r.a[i].Name < r.a[j].Name
 }
 
 func (r *partitionSorter) Swap(i, j int) {
@@ -545,7 +554,15 @@ func (ns *nodeSorter) Len() int {
 }
 
 func (ns *nodeSorter) Less(i, j int) bool {
-	return ns.Score(i) < ns.Score(j)
+	si := ns.Score(i)
+	sj := ns.Score(j)
+	if si < sj {
+		return true
+	}
+	if si > sj {
+		return false
+	}
+	return ns.a[i] < ns.a[j]
 }
 
 func (ns *nodeSorter) Swap(i, j int) {

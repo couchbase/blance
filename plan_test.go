@@ -8,8 +8,6 @@ import (
 	"testing"
 )
 
-// TODO: Test changing node weights.
-
 func TestflattenNodesByState(t *testing.T) {
 	tests := []struct {
 		a   map[string][]string
@@ -1802,17 +1800,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			expNumWarnings: 0,
 		},
 		{
-			// TODO: ISSUE: looks like the masters assigned to b moved
-			// nicely to node e, but b's slaves didn't go to e
-			// cleanly.
 			About: "single node swap, from node b to node e",
 			FromTo: [][]string{
 				//        abcd    abcde
 				[]string{" m s", "   sm"},
-				[]string{"  ms", "  m s"}, // Non-optimal slave move?
+				[]string{"  ms", "  ms "},
 				[]string{"s  m", "s  m "},
 				[]string{" ms ", "  s m"},
-				[]string{" sm ", "  ms "}, // c instead of e took over b's slave?
+				[]string{" sm ", "  m s"},
 				[]string{"s  m", "s  m "},
 				[]string{"ms  ", "m   s"},
 				[]string{"m s ", "m s  "},
@@ -1871,13 +1866,13 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "8 partitions, 1 to 8 nodes",
 			FromTo: [][]string{
 				//             abcdefgh
-				[]string{"m", "s      m"},
-				[]string{"m", "  s   m "},
-				[]string{"m", "   s m  "},
+				[]string{"m", "sm      "},
+				[]string{"m", "  ms    "},
+				[]string{"m", "  sm    "},
 				[]string{"m", "    ms  "},
-				[]string{"m", " m  s   "},
-				[]string{"m", "   m  s "},
-				[]string{"m", "  m    s"},
+				[]string{"m", "    sm  "},
+				[]string{"m", "      ms"},
+				[]string{"m", "      sm"},
 				[]string{"m", "ms      "},
 			},
 			Nodes:          []string{"a", "b", "c", "d", "e", "f", "g", "h"},
@@ -1890,13 +1885,13 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "8 partitions, 1 to 8 nodes, 0 slaves",
 			FromTo: [][]string{
 				//             abcdefgh
-				[]string{"m", "       m"},
-				[]string{"m", "      m "},
-				[]string{"m", "     m  "},
-				[]string{"m", "    m   "},
 				[]string{"m", " m      "},
-				[]string{"m", "   m    "},
 				[]string{"m", "  m     "},
+				[]string{"m", "   m    "},
+				[]string{"m", "    m   "},
+				[]string{"m", "     m  "},
+				[]string{"m", "      m "},
+				[]string{"m", "       m"},
 				[]string{"m", "m       "},
 			},
 			Nodes:          []string{"a", "b", "c", "d", "e", "f", "g", "h"},
@@ -1929,11 +1924,11 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "8 partitions, 4 nodes, increase partition 004 weight",
 			FromTo: [][]string{
 				//        abcd    abcd
-				[]string{"sm  ", " m s"},
-				[]string{"  ms", " s m"},
-				[]string{"s  m", "  sm"},
-				[]string{" ms ", " m s"},
-				[]string{" sm ", "s m "},
+				[]string{"sm  ", "sm  "},
+				[]string{"  ms", "s  m"},
+				[]string{"s  m", "s  m"},
+				[]string{" ms ", " ms "},
+				[]string{" sm ", "  ms"},
 				[]string{" s m", " s m"},
 				[]string{"ms  ", "ms  "},
 				[]string{"m s ", "m s "},
