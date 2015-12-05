@@ -68,6 +68,11 @@ func planNextMapInner(
 ) (PartitionMap, []string) {
 	warnings := []string{}
 
+	nodePositions := map[string]int{}
+	for i, node := range nodesAll {
+		nodePositions[node] = i
+	}
+
 	nodesNext := StringsRemoveStrings(nodesAll, nodesToRemove)
 
 	hierarchyChildren := mapParentsToMapChildren(nodeHierarchy)
@@ -157,6 +162,7 @@ func planNextMapInner(
 			stateNodeCounts:     stateNodeCounts,
 			nodeToNodeCounts:    nodeToNodeCounts,
 			nodePartitionCounts: nodePartitionCounts,
+			nodePositions:       nodePositions,
 			nodeWeights:         nodeWeights,
 			stickiness:          stickiness,
 			a:                   candidateNodes,
@@ -188,6 +194,7 @@ func planNextMapInner(
 					stateNodeCounts:     stateNodeCounts,
 					nodeToNodeCounts:    nodeToNodeCounts,
 					nodePartitionCounts: nodePartitionCounts,
+					nodePositions:       nodePositions,
 					nodeWeights:         nodeWeights,
 					stickiness:          stickiness,
 					a:                   hierarchyCandidates,
@@ -543,6 +550,7 @@ type nodeSorter struct {
 	stateNodeCounts     map[string]map[string]int
 	nodeToNodeCounts    map[string]map[string]int
 	nodePartitionCounts map[string]int
+	nodePositions       map[string]int
 	nodeWeights         map[string]int
 	stickiness          float64
 
@@ -562,7 +570,7 @@ func (ns *nodeSorter) Less(i, j int) bool {
 	if si > sj {
 		return false
 	}
-	return ns.a[i] < ns.a[j]
+	return ns.nodePositions[ns.a[i]] < ns.nodePositions[ns.a[j]]
 }
 
 func (ns *nodeSorter) Swap(i, j int) {
