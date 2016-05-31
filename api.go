@@ -107,34 +107,8 @@ type HierarchyRule struct {
 	ExcludeLevel int `json:"excludeLevel"`
 }
 
-// PlanNextMap is the main entry point to the algorithm to assign
-// partitions to nodes.  The prevMap must at least define the
-// partitions.  Partitions must be stable between PlanNextMap() runs.
-// That is, splitting and merging or partitions are an orthogonal
-// concern and must be done separately than PlanNextMap() invocations.
-// The nodeAll parameters is all nodes (union of existing nodes, nodes
-// to be added, nodes to be removed, nodes that aren't changing).  The
-// nodesToRemove may be empty.  The nodesToAdd may be empty.  When
-// both nodesToRemove and nodesToAdd are empty, partitioning
-// assignment may still change, as another PlanNextMap() invocation
-// may reach more stabilization or balanced'ness.  The model is
-// required.  The modelStateConstraints is optional, and allows the
-// caller to override the constraints defined in the model.  The
-// modelStateConstraints is keyed by stateName (like "master", "slave",
-// etc).  The partitionWeights is optional and is keyed by
-// partitionName; it allows the caller to specify that some partitions
-// are bigger than others (e.g., California has more records than
-// Hawaii); default partitionWeight is 1.  The stateStickiness is
-// optional and is keyed by stateName; it allows the caller to prefer
-// not moving data at the tradeoff of potentially more imbalance;
-// default stateStickiness is 1.5.  The nodeWeights is optional and is
-// keyed by node name; it allows the caller to specify that some nodes
-// can hold more partitions than other nodes; default nodeWeight is 1.
-// The nodeHierarchy is optional; it defines the parent relationships
-// per node; it is keyed by node and a value is the node's parent.
-// The hierarchyRules is optional and allows the caller to define
-// slave placement policy (e.g., same/different rack; same/different
-// zone; etc).
+// PlanNextMap is deprecated.  Applications should instead use the
+// PlanNextMapEx() and PlanNextMapOptions API's.
 func PlanNextMap(
 	prevMap PartitionMap,
 	nodesAll []string, // Union of nodesBefore, nodesToAdd, nodesToRemove.
@@ -148,12 +122,62 @@ func PlanNextMap(
 	nodeHierarchy map[string]string, // Keyed by node, value is node's parent.
 	hierarchyRules HierarchyRules,
 ) (nextMap PartitionMap, warnings []string) {
-	return planNextMap(prevMap,
-		nodesAll, nodesToRemove, nodesToAdd,
-		model, modelStateConstraints,
-		partitionWeights,
-		stateStickiness,
-		nodeWeights,
-		nodeHierarchy,
-		hierarchyRules)
+	return PlanNextMapEx(prevMap, nodesAll, nodesToRemove, nodesToAdd,
+		model, PlanNextMapOptions{
+			ModelStateConstraints: modelStateConstraints,
+			PartitionWeights:      partitionWeights,
+			StateStickiness:       stateStickiness,
+			NodeWeights:           nodeWeights,
+			NodeHierarchy:         nodeHierarchy,
+			HierarchyRules:        hierarchyRules,
+		})
+}
+
+// PlanNextMapEx is the main entry point to the algorithm to assign
+// partitions to nodes.  The prevMap must define the partitions.
+// Partitions must be stable between PlanNextMapEx() runs.  That is,
+// splitting and merging or partitions are an orthogonal concern and
+// must be done separately than PlanNextMapEx() invocations.  The
+// nodeAll parameters is all nodes (union of existing nodes, nodes to
+// be added, nodes to be removed, nodes that aren't changing).  The
+// nodesToRemove may be empty.  The nodesToAdd may be empty.  When
+// both nodesToRemove and nodesToAdd are empty, partitioning
+// assignment may still change, as another PlanNextMapEx() invocation
+// may reach more stabilization or balanced'ness.
+func PlanNextMapEx(
+	prevMap PartitionMap,
+	nodesAll []string, // Union of nodesBefore, nodesToAdd, nodesToRemove.
+	nodesToRemove []string,
+	nodesToAdd []string,
+	model PartitionModel,
+	options PlanNextMapOptions) (nextMap PartitionMap, warnings []string) {
+	return planNextMapEx(prevMap, nodesAll, nodesToRemove, nodesToAdd,
+		model, options)
+}
+
+// PlanNextMapOptions represents optional parameters to the
+// PlanNextMapEx() API.  The ModelStateConstraints allows the caller
+// to override the constraints defined in the model.  The
+// ModelStateConstraints is keyed by stateName (like "master",
+// "slave", etc).  The PartitionWeights is optional and is keyed by
+// partitionName; it allows the caller to specify that some partitions
+// are bigger than others (e.g., California has more records than
+// Hawaii); default partition weight is 1.  The StateStickiness is
+// optional and is keyed by stateName; it allows the caller to prefer
+// not moving data at the tradeoff of potentially more imbalance;
+// default state stickiness is 1.5.  The NodeWeights is optional and
+// is keyed by node name; it allows the caller to specify that some
+// nodes can hold more partitions than other nodes; default node
+// weight is 1.  The NodeHierarchy defines optional parent
+// relationships per node; it is keyed by node and a value is the
+// node's parent.  The HierarchyRules allows the caller to optionally
+// define slave placement policy (e.g., same/different rack;
+// same/different zone; etc).
+type PlanNextMapOptions struct {
+	ModelStateConstraints map[string]int    // Keyed by stateName.
+	PartitionWeights      map[string]int    // Keyed by partitionName.
+	StateStickiness       map[string]int    // Keyed by stateName.
+	NodeWeights           map[string]int    // Keyed by node.
+	NodeHierarchy         map[string]string // Keyed by node; value is node's parent.
+	HierarchyRules        HierarchyRules
 }

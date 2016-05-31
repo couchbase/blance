@@ -23,25 +23,17 @@ import (
 // only needs only 1 or 2 iterations.
 var MaxIterationsPerPlan = 10
 
-func planNextMap(
+func planNextMapEx(
 	prevMap PartitionMap,
 	nodesAll []string, // Union of nodesBefore, nodesToAdd, nodesToRemove.
 	nodesToRemove []string,
 	nodesToAdd []string,
 	model PartitionModel,
-	modelStateConstraints map[string]int, // Keyed by stateName.
-	partitionWeights map[string]int, // Keyed by partitionName.
-	stateStickiness map[string]int, // Keyed by stateName.
-	nodeWeights map[string]int, // Keyed by node.
-	nodeHierarchy map[string]string, // Keyed by node, value is node's parent.
-	hierarchyRules HierarchyRules,
+	opts PlanNextMapOptions,
 ) (nextMap PartitionMap, warnings []string) {
 	for i := 0; i < MaxIterationsPerPlan; i++ { // Loop for convergence.
-		nextMap, warnings = planNextMapInner(prevMap,
-			nodesAll, nodesToRemove, nodesToAdd,
-			model, modelStateConstraints,
-			partitionWeights, stateStickiness, nodeWeights,
-			nodeHierarchy, hierarchyRules)
+		nextMap, warnings = planNextMapInnerEx(prevMap,
+			nodesAll, nodesToRemove, nodesToAdd, model, opts)
 		if reflect.DeepEqual(nextMap, prevMap) {
 			break
 		}
@@ -53,18 +45,13 @@ func planNextMap(
 	return nextMap, warnings
 }
 
-func planNextMapInner(
+func planNextMapInnerEx(
 	prevMap PartitionMap,
 	nodesAll []string, // Union of nodesBefore, nodesToAdd, nodesToRemove.
 	nodesToRemove []string,
 	nodesToAdd []string,
 	model PartitionModel,
-	modelStateConstraints map[string]int, // Keyed by stateName.
-	partitionWeights map[string]int, // Keyed by partitionName.
-	stateStickiness map[string]int, // Keyed by stateName.
-	nodeWeights map[string]int, // Keyed by node.
-	nodeHierarchy map[string]string, // Keyed by node, value is node's parent.
-	hierarchyRules HierarchyRules,
+	opts PlanNextMapOptions,
 ) (PartitionMap, []string) {
 	warnings := []string{}
 
@@ -75,7 +62,7 @@ func planNextMapInner(
 
 	nodesNext := StringsRemoveStrings(nodesAll, nodesToRemove)
 
-	hierarchyChildren := mapParentsToMapChildren(nodeHierarchy)
+	hierarchyChildren := mapParentsToMapChildren(opts.NodeHierarchy)
 
 	// Start by filling out nextPartitions as a deep clone of
 	// prevMap.Partitions, but filter out the to-be-removed nodes.
@@ -90,7 +77,7 @@ func planNextMapInner(
 	// Key is stateName, value is {node: count}.
 	var stateNodeCounts map[string]map[string]int
 
-	stateNodeCounts = countStateNodes(prevMap, partitionWeights)
+	stateNodeCounts = countStateNodes(prevMap, opts.PartitionWeights)
 
 	// Helper function that returns an ordered array of candidates
 	// nodes to assign to a partition, ordered by best heuristic fit.
@@ -101,12 +88,12 @@ func planNextMapInner(
 		nodeToNodeCounts map[string]map[string]int,
 	) []string {
 		stickiness := 1.5
-		if partitionWeights != nil {
-			w, exists := partitionWeights[partition.Name]
+		if opts.PartitionWeights != nil {
+			w, exists := opts.PartitionWeights[partition.Name]
 			if exists {
 				stickiness = float64(w)
-			} else if stateStickiness != nil {
-				s, exists := stateStickiness[stateName]
+			} else if opts.StateStickiness != nil {
+				s, exists := opts.StateStickiness[stateName]
 				if exists {
 					stickiness = float64(s)
 				}
@@ -163,15 +150,15 @@ func planNextMapInner(
 			nodeToNodeCounts:    nodeToNodeCounts,
 			nodePartitionCounts: nodePartitionCounts,
 			nodePositions:       nodePositions,
-			nodeWeights:         nodeWeights,
+			nodeWeights:         opts.NodeWeights,
 			stickiness:          stickiness,
 			a:                   candidateNodes,
 		})
 
-		if hierarchyRules != nil {
+		if opts.HierarchyRules != nil {
 			hierarchyNodes := []string{}
 
-			for _, hierarchyRule := range hierarchyRules[stateName] {
+			for _, hierarchyRule := range opts.HierarchyRules[stateName] {
 				h := topPriorityNode
 				if h == "" && len(hierarchyNodes) > 0 {
 					h = hierarchyNodes[0]
@@ -180,7 +167,7 @@ func planNextMapInner(
 				hierarchyCandidates := includeExcludeNodes(h,
 					hierarchyRule.IncludeLevel,
 					hierarchyRule.ExcludeLevel,
-					nodeHierarchy, hierarchyChildren)
+					opts.NodeHierarchy, hierarchyChildren)
 				hierarchyCandidates =
 					StringsIntersectStrings(hierarchyCandidates, nodesNext)
 				hierarchyCandidates =
@@ -195,7 +182,7 @@ func planNextMapInner(
 					nodeToNodeCounts:    nodeToNodeCounts,
 					nodePartitionCounts: nodePartitionCounts,
 					nodePositions:       nodePositions,
-					nodeWeights:         nodeWeights,
+					nodeWeights:         opts.NodeWeights,
 					stickiness:          stickiness,
 					a:                   hierarchyCandidates,
 				})
@@ -244,7 +231,7 @@ func planNextMapInner(
 			prevMap:          prevMap,
 			nodesToRemove:    nodesToRemove,
 			nodesToAdd:       nodesToAdd,
-			partitionWeights: partitionWeights,
+			partitionWeights: opts.PartitionWeights,
 			a:                append([]*Partition(nil), nextPartitions...),
 		}
 		sort.Sort(p)
@@ -254,8 +241,8 @@ func planNextMapInner(
 
 		for _, partition := range p.a {
 			partitionWeight := 1
-			if partitionWeights != nil {
-				w, exists := partitionWeights[partition.Name]
+			if opts.PartitionWeights != nil {
+				w, exists := opts.PartitionWeights[partition.Name]
 				if exists {
 					partitionWeight = w
 				}
@@ -292,11 +279,16 @@ func planNextMapInner(
 	// Run through the sorted partition states (master, slave, etc)
 	// that have constraints and invoke assignStateToPartitions().
 	for _, stateName := range sortStateNames(model) {
-		constraints, exists := modelStateConstraints[stateName]
-		if !exists {
-			modelState, exists := model[stateName]
-			if exists && modelState != nil {
-				constraints = modelState.Constraints
+		constraints := 0
+
+		modelState, exists := model[stateName]
+		if exists && modelState != nil {
+			constraints = modelState.Constraints
+		}
+		if opts.ModelStateConstraints != nil {
+			modelStateConstraints, exists := opts.ModelStateConstraints[stateName]
+			if exists {
+				constraints = modelStateConstraints
 			}
 		}
 
