@@ -1982,6 +1982,118 @@ func TestPlanNextMapVis(t *testing.T) {
 			StateStickiness: map[string]int{"master": 1000000},
 			expNumWarnings:  0,
 		},
+		{
+			About: "3 partitions, 2 nodes add 1 node, sm first",
+			FromTo: [][]string{
+				//        ab    abc
+				[]string{"sm", "s m"},
+				[]string{"ms", "ms "},
+				[]string{"sm", " ms"},
+			},
+			Nodes:          []string{"a", "b", "c"},
+			NodesToRemove:  []string{},
+			NodesToAdd:     []string{},
+			Model:          partitionModel1Master1Slave,
+			expNumWarnings: 0,
+		},
+		{
+			About: "3 partitions, 2 nodes add 1 node, ms first",
+			FromTo: [][]string{
+				//        ab    abc
+				[]string{"ms", " sm"},
+				[]string{"sm", "sm "},
+				[]string{"ms", "m s"},
+			},
+			Nodes:          []string{"a", "b", "c"},
+			NodesToRemove:  []string{},
+			NodesToAdd:     []string{},
+			Model:          partitionModel1Master1Slave,
+			expNumWarnings: 0,
+		},
+		{
+			About: "8 partitions, 2 nodes add 1 node",
+			// ISSUE: result does not have 2nd order of balance'd-ness.
+			FromTo: [][]string{
+				//        ab    abc
+				[]string{"sm", "s m"},
+				[]string{"sm", "s m"},
+				[]string{"sm", " ms"},
+				[]string{"sm", " ms"},
+				[]string{"ms", "s m"},
+				[]string{"ms", "ms "},
+				[]string{"ms", "ms "},
+				[]string{"ms", "ms "},
+			},
+			Nodes:          []string{"a", "b", "c"},
+			NodesToRemove:  []string{},
+			NodesToAdd:     []string{},
+			Model:          partitionModel1Master1Slave,
+			expNumWarnings: 0,
+		},
+		{
+			About: "8 partitions, 2 nodes add 1 node, flipped ms",
+			// ISSUE: result does not have 2nd order of balance'd-ness.
+			FromTo: [][]string{
+				//        ab    abc
+				[]string{"ms", " sm"},
+				[]string{"ms", " sm"},
+				[]string{"ms", "m s"},
+				[]string{"ms", "m s"},
+				[]string{"sm", " sm"},
+				[]string{"sm", "sm "},
+				[]string{"sm", "sm "},
+				[]string{"sm", "sm "},
+			},
+			Nodes:          []string{"a", "b", "c"},
+			NodesToRemove:  []string{},
+			NodesToAdd:     []string{},
+			Model:          partitionModel1Master1Slave,
+			expNumWarnings: 0,
+		},
+		{
+			About: "8 partitions, 2 nodes add 1 node, interleaved m's",
+			// ISSUE: not enough partitions moved: c has less than a &
+			// b, especially slaves; but it has some 2nd order
+			// balance'd-ness.
+			FromTo: [][]string{
+				//        ab    abc
+				[]string{"ms", " sm"},
+				[]string{"sm", "s m"},
+				[]string{"ms", "m s"},
+				[]string{"sm", " ms"},
+				[]string{"ms", "ms "},
+				[]string{"sm", "sm "},
+				[]string{"ms", "ms "},
+				[]string{"sm", "sm "},
+			},
+			Nodes:          []string{"a", "b", "c"},
+			NodesToRemove:  []string{},
+			NodesToAdd:     []string{},
+			Model:          partitionModel1Master1Slave,
+			expNumWarnings: 0,
+		},
+		{
+			About: "8 partitions, 2 nodes add 1 node, interleaved s'm",
+			// ISSUE: not enough partitions moved: c has less than a &
+			// b, especially slaves; but it has some 2nd order
+			// balance'd-ness.
+			FromTo: [][]string{
+				//        ab    abc
+				[]string{"sm", "s m"},
+				[]string{"ms", " sm"},
+				[]string{"sm", " ms"},
+				[]string{"ms", "m s"},
+				[]string{"sm", "sm "},
+				[]string{"ms", "ms "},
+				[]string{"sm", "sm "},
+				[]string{"ms", "ms "},
+			},
+			Nodes:          []string{"a", "b", "c"},
+			NodesToRemove:  []string{},
+			NodesToAdd:     []string{},
+			Model:          partitionModel1Master1Slave,
+			expNumWarnings: 0,
+		},
 	}
 	testVisTestCases(t, tests)
 }
