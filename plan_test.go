@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestflattenNodesByState(t *testing.T) {
+func TestFlattenNodesByState(t *testing.T) {
 	tests := []struct {
 		a   map[string][]string
 		exp []string
