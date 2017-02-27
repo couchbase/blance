@@ -288,7 +288,7 @@ func TestCalcPartitionMoves(t *testing.T) {
 			" a    | b  c",
 			` a    | b  c +d
 			 -a    | b  c  d
-                +b |-b  c  d`,
+			    +b |-b  c  d`,
 			"    b |    c  d",
 			true,
 		},
