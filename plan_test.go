@@ -15,19 +15,19 @@ func TestFlattenNodesByState(t *testing.T) {
 	}{
 		{map[string][]string{},
 			[]string{}},
-		{map[string][]string{"master": []string{}},
+		{map[string][]string{"master": {}},
 			[]string{}},
-		{map[string][]string{"master": []string{"a"}},
+		{map[string][]string{"master": {"a"}},
 			[]string{"a"}},
-		{map[string][]string{"master": []string{"a", "b"}},
+		{map[string][]string{"master": {"a", "b"}},
 			[]string{"a", "b"}},
 		{map[string][]string{
-			"master": []string{"a", "b"},
-			"slave":  []string{"c"},
+			"master": {"a", "b"},
+			"slave":  {"c"},
 		}, []string{"a", "b", "c"}},
 		{map[string][]string{
-			"master": []string{"a", "b"},
-			"slave":  []string{},
+			"master": {"a", "b"},
+			"slave":  {},
 		}, []string{"a", "b"}},
 	}
 	for i, c := range tests {
@@ -45,53 +45,53 @@ func TestRemoveNodesFromNodesByState(t *testing.T) {
 		removeNodes  []string
 		exp          map[string][]string
 	}{
-		{map[string][]string{"master": []string{"a", "b"}},
+		{map[string][]string{"master": {"a", "b"}},
 			[]string{"a", "b"},
-			map[string][]string{"master": []string{}},
+			map[string][]string{"master": {}},
 		},
-		{map[string][]string{"master": []string{"a", "b"}},
+		{map[string][]string{"master": {"a", "b"}},
 			[]string{"b", "c"},
-			map[string][]string{"master": []string{"a"}},
+			map[string][]string{"master": {"a"}},
 		},
-		{map[string][]string{"master": []string{"a", "b"}},
+		{map[string][]string{"master": {"a", "b"}},
 			[]string{"a", "c"},
-			map[string][]string{"master": []string{"b"}},
+			map[string][]string{"master": {"b"}},
 		},
-		{map[string][]string{"master": []string{"a", "b"}},
+		{map[string][]string{"master": {"a", "b"}},
 			[]string{},
-			map[string][]string{"master": []string{"a", "b"}},
+			map[string][]string{"master": {"a", "b"}},
 		},
 		{
 			map[string][]string{
-				"master": []string{"a", "b"},
-				"slave":  []string{"c"},
+				"master": {"a", "b"},
+				"slave":  {"c"},
 			},
 			[]string{},
 			map[string][]string{
-				"master": []string{"a", "b"},
-				"slave":  []string{"c"},
+				"master": {"a", "b"},
+				"slave":  {"c"},
 			},
 		},
 		{
 			map[string][]string{
-				"master": []string{"a", "b"},
-				"slave":  []string{"c"},
+				"master": {"a", "b"},
+				"slave":  {"c"},
 			},
 			[]string{"a"},
 			map[string][]string{
-				"master": []string{"b"},
-				"slave":  []string{"c"},
+				"master": {"b"},
+				"slave":  {"c"},
 			},
 		},
 		{
 			map[string][]string{
-				"master": []string{"a", "b"},
-				"slave":  []string{"c"},
+				"master": {"a", "b"},
+				"slave":  {"c"},
 			},
 			[]string{"a", "c"},
 			map[string][]string{
-				"master": []string{"b"},
-				"slave":  []string{},
+				"master": {"b"},
+				"slave":  {},
 			},
 		},
 	}
@@ -178,21 +178,21 @@ func TestCountStateNodes(t *testing.T) {
 		{
 			PartitionMap{
 				"0": &Partition{NodesByState: map[string][]string{
-					"master": []string{"a"},
-					"slave":  []string{"b", "c"},
+					"master": {"a"},
+					"slave":  {"b", "c"},
 				}},
 				"1": &Partition{NodesByState: map[string][]string{
-					"master": []string{"b"},
-					"slave":  []string{"c"},
+					"master": {"b"},
+					"slave":  {"c"},
 				}},
 			},
 			nil,
 			map[string]map[string]int{
-				"master": map[string]int{
+				"master": {
 					"a": 1,
 					"b": 1,
 				},
-				"slave": map[string]int{
+				"slave": {
 					"b": 1,
 					"c": 2,
 				},
@@ -201,19 +201,19 @@ func TestCountStateNodes(t *testing.T) {
 		{
 			PartitionMap{
 				"0": &Partition{NodesByState: map[string][]string{
-					"slave": []string{"b", "c"},
+					"slave": {"b", "c"},
 				}},
 				"1": &Partition{NodesByState: map[string][]string{
-					"master": []string{"b"},
-					"slave":  []string{"c"},
+					"master": {"b"},
+					"slave":  {"c"},
 				}},
 			},
 			nil,
 			map[string]map[string]int{
-				"master": map[string]int{
+				"master": {
 					"b": 1,
 				},
-				"slave": map[string]int{
+				"slave": {
 					"b": 1,
 					"c": 2,
 				},
@@ -239,31 +239,31 @@ func TestPartitionMapToArrayCopy(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"b", "c"},
+						"master": {"a"},
+						"slave":  {"b", "c"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"c"},
+						"master": {"b"},
+						"slave":  {"c"},
 					},
 				},
 			},
 			[]*Partition{
-				&Partition{
+				{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"b", "c"},
+						"master": {"a"},
+						"slave":  {"b", "c"},
 					},
 				},
-				&Partition{
+				{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"c"},
+						"master": {"b"},
+						"slave":  {"c"},
 					},
 				},
 			},
@@ -326,10 +326,10 @@ func TestFindLeaves(t *testing.T) {
 		exp         []string
 	}{
 		{map[string][]string{}, []string{"a"}},
-		{map[string][]string{"x": []string{"xx"}}, []string{"a"}},
-		{map[string][]string{"a": []string{}}, []string{"a"}},
-		{map[string][]string{"a": []string{"b"}}, []string{"b"}},
-		{map[string][]string{"a": []string{"b", "c"}}, []string{"b", "c"}},
+		{map[string][]string{"x": {"xx"}}, []string{"a"}},
+		{map[string][]string{"a": {}}, []string{"a"}},
+		{map[string][]string{"a": {"b"}}, []string{"b"}},
+		{map[string][]string{"a": {"b", "c"}}, []string{"b", "c"}},
 	}
 	for i, c := range tests {
 		r := findLeaves("a", c.mapChildren)
@@ -348,26 +348,26 @@ func TestMapParentsToMapChildren(t *testing.T) {
 		{map[string]string{},
 			map[string][]string{}},
 		{map[string]string{"a": "r"},
-			map[string][]string{"r": []string{"a"}}},
+			map[string][]string{"r": {"a"}}},
 		{map[string]string{"a": "r", "b": "r2"},
 			map[string][]string{
-				"r":  []string{"a"},
-				"r2": []string{"b"},
+				"r":  {"a"},
+				"r2": {"b"},
 			}},
 		{map[string]string{"a": "r", "a1": "a"},
 			map[string][]string{
-				"r": []string{"a"},
-				"a": []string{"a1"},
+				"r": {"a"},
+				"a": {"a1"},
 			}},
 		{map[string]string{"a": "r", "a1": "a", "a2": "a"},
 			map[string][]string{
-				"r": []string{"a"},
-				"a": []string{"a1", "a2"},
+				"r": {"a"},
+				"a": {"a1", "a2"},
 			}},
 		{map[string]string{"a": "r", "a1": "a", "a2": "a", "a0": "a"},
 			map[string][]string{
-				"r": []string{"a"},
-				"a": []string{"a0", "a1", "a2"},
+				"r": {"a"},
+				"a": {"a0", "a1", "a2"},
 			}},
 	}
 	for i, c := range tests {
@@ -427,13 +427,13 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 			},
@@ -470,15 +470,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{},
+						"master": {"a"},
+						"slave":  {},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{},
+						"master": {"a"},
+						"slave":  {},
 					},
 				},
 			},
@@ -568,15 +568,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"b"},
+						"master": {"a"},
+						"slave":  {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"a"},
+						"master": {"b"},
+						"slave":  {"a"},
 					},
 				},
 			},
@@ -588,15 +588,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"b"},
+						"master": {"a"},
+						"slave":  {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"a"},
+						"master": {"b"},
+						"slave":  {"a"},
 					},
 				},
 			},
@@ -619,15 +619,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{},
+						"master": {"a"},
+						"slave":  {},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{},
+						"master": {"a"},
+						"slave":  {},
 					},
 				},
 			},
@@ -639,15 +639,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"b"},
+						"master": {"a"},
+						"slave":  {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"a"},
+						"master": {"b"},
+						"slave":  {"a"},
 					},
 				},
 			},
@@ -670,15 +670,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{},
-						"slave":  []string{},
+						"master": {},
+						"slave":  {},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{},
-						"slave":  []string{},
+						"master": {},
+						"slave":  {},
 					},
 				},
 			},
@@ -690,15 +690,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"b"},
+						"master": {"a"},
+						"slave":  {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"a"},
+						"master": {"b"},
+						"slave":  {"a"},
 					},
 				},
 			},
@@ -721,15 +721,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{},
-						"slave":  []string{},
+						"master": {},
+						"slave":  {},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{},
-						"slave":  []string{},
+						"master": {},
+						"slave":  {},
 					},
 				},
 			},
@@ -741,15 +741,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"b"},
+						"master": {"a"},
+						"slave":  {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"a"},
+						"master": {"b"},
+						"slave":  {"a"},
 					},
 				},
 			},
@@ -772,15 +772,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"b"},
+						"master": {"a"},
+						"slave":  {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"a"},
+						"master": {"b"},
+						"slave":  {"a"},
 					},
 				},
 			},
@@ -792,15 +792,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"b"},
+						"master": {"a"},
+						"slave":  {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"a"},
+						"master": {"b"},
+						"slave":  {"a"},
 					},
 				},
 			},
@@ -823,15 +823,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"c"},
-						"slave":  []string{"b"},
+						"master": {"c"},
+						"slave":  {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"c"},
+						"master": {"b"},
+						"slave":  {"c"},
 					},
 				},
 			},
@@ -843,15 +843,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"b"},
+						"master": {"a"},
+						"slave":  {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"a"},
+						"master": {"b"},
+						"slave":  {"a"},
 					},
 				},
 			},
@@ -874,15 +874,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"c"},
+						"master": {"a"},
+						"slave":  {"c"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"c"},
-						"slave":  []string{"a"},
+						"master": {"c"},
+						"slave":  {"a"},
 					},
 				},
 			},
@@ -894,15 +894,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"b"},
+						"master": {"a"},
+						"slave":  {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"a"},
+						"master": {"b"},
+						"slave":  {"a"},
 					},
 				},
 			},
@@ -925,15 +925,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"c"},
-						"slave":  []string{"d"},
+						"master": {"c"},
+						"slave":  {"d"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"d"},
-						"slave":  []string{"c"},
+						"master": {"d"},
+						"slave":  {"c"},
 					},
 				},
 			},
@@ -970,15 +970,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a", "b"},
-						"slave":  []string{},
+						"master": {"a", "b"},
+						"slave":  {},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"a", "b"},
-						"slave":  []string{},
+						"master": {"a", "b"},
+						"slave":  {},
 					},
 				},
 			},
@@ -1015,15 +1015,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"b", "a"},
-						"slave":  []string{"c"},
+						"master": {"b", "a"},
+						"slave":  {"c"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"c", "a"},
-						"slave":  []string{"b"},
+						"master": {"c", "a"},
+						"slave":  {"b"},
 					},
 				},
 			},
@@ -1063,15 +1063,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
-						"slave":  []string{"b"},
+						"master": {"a"},
+						"slave":  {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
-						"slave":  []string{"a"},
+						"master": {"b"},
+						"slave":  {"a"},
 					},
 				},
 			},
@@ -1118,25 +1118,25 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 				"2": &Partition{
 					Name: "2",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 				"3": &Partition{
 					Name: "3",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 			},
@@ -1187,31 +1187,31 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 				"2": &Partition{
 					Name: "2",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 				"3": &Partition{
 					Name: "3",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 				"4": &Partition{
 					Name: "4",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 			},
@@ -1266,37 +1266,37 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 				"2": &Partition{
 					Name: "2",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 				"3": &Partition{
 					Name: "3",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 				"4": &Partition{
 					Name: "4",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 				"5": &Partition{
 					Name: "5",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 			},
@@ -1351,37 +1351,37 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 				"2": &Partition{
 					Name: "2",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 				"3": &Partition{
 					Name: "3",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 				"4": &Partition{
 					Name: "4",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 				"5": &Partition{
 					Name: "5",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 			},
@@ -1436,37 +1436,37 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 				"2": &Partition{
 					Name: "2",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 				"3": &Partition{
 					Name: "3",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 				"4": &Partition{
 					Name: "4",
 					NodesByState: map[string][]string{
-						"master": []string{"a"},
+						"master": {"a"},
 					},
 				},
 				"5": &Partition{
 					Name: "5",
 					NodesByState: map[string][]string{
-						"master": []string{"b"},
+						"master": {"b"},
 					},
 				},
 			},
@@ -1657,8 +1657,8 @@ func TestPlanNextMapVis(t *testing.T) {
 		{
 			About: "single node, simple assignment of master",
 			FromTo: [][]string{
-				[]string{"", "m"},
-				[]string{"", "m"},
+				{"", "m"},
+				{"", "m"},
 			},
 			Nodes:          []string{"a"},
 			NodesToRemove:  []string{},
@@ -1669,8 +1669,8 @@ func TestPlanNextMapVis(t *testing.T) {
 		{
 			About: "added nodes a & b",
 			FromTo: [][]string{
-				[]string{"", "ms"},
-				[]string{"", "sm"},
+				{"", "ms"},
+				{"", "sm"},
 			},
 			Nodes:          []string{"a", "b"},
 			NodesToRemove:  []string{},
@@ -1681,8 +1681,8 @@ func TestPlanNextMapVis(t *testing.T) {
 		{
 			About: "single node to 2 nodes",
 			FromTo: [][]string{
-				[]string{"m", "sm"},
-				[]string{"m", "ms"},
+				{"m", "sm"},
+				{"m", "ms"},
 			},
 			Nodes:          []string{"a", "b"},
 			NodesToRemove:  []string{},
@@ -1693,8 +1693,8 @@ func TestPlanNextMapVis(t *testing.T) {
 		{
 			About: "single node to 3 nodes",
 			FromTo: [][]string{
-				[]string{"m", "sm "},
-				[]string{"m", "m s"},
+				{"m", "sm "},
+				{"m", "m s"},
 			},
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
@@ -1705,8 +1705,8 @@ func TestPlanNextMapVis(t *testing.T) {
 		{
 			About: "2 unbalanced nodes to balanced'ness",
 			FromTo: [][]string{
-				[]string{"ms", "sm"},
-				[]string{"ms", "ms"},
+				{"ms", "sm"},
+				{"ms", "ms"},
 			},
 			Nodes:          []string{"a", "b"},
 			NodesToRemove:  []string{},
@@ -1717,8 +1717,8 @@ func TestPlanNextMapVis(t *testing.T) {
 		{
 			About: "2 unbalanced nodes to 3 balanced nodes",
 			FromTo: [][]string{
-				[]string{"ms", " sm"},
-				[]string{"ms", "m s"},
+				{"ms", " sm"},
+				{"ms", "m s"},
 			},
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
@@ -1729,10 +1729,10 @@ func TestPlanNextMapVis(t *testing.T) {
 		{
 			About: "4 partitions, 1 to 4 nodes",
 			FromTo: [][]string{
-				[]string{"m", "sm  "},
-				[]string{"m", "  ms"},
-				[]string{"m", "  sm"},
-				[]string{"m", "ms  "},
+				{"m", "sm  "},
+				{"m", "  ms"},
+				{"m", "  sm"},
+				{"m", "ms  "},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
@@ -1744,14 +1744,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "8 partitions, 1 to 4 nodes",
 			FromTo: [][]string{
 				//             abcd
-				[]string{"m", "sm  "},
-				[]string{"m", "  ms"},
-				[]string{"m", "s  m"},
-				[]string{"m", " ms "},
-				[]string{"m", "  ms"},
-				[]string{"m", " s m"},
-				[]string{"m", "ms  "},
-				[]string{"m", "m s "},
+				{"m", "sm  "},
+				{"m", "  ms"},
+				{"m", "s  m"},
+				{"m", " ms "},
+				{"m", "  ms"},
+				{"m", " s m"},
+				{"m", "ms  "},
+				{"m", "m s "},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
@@ -1763,14 +1763,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "8 partitions, 4 nodes don't change, 1 slave moved",
 			FromTo: [][]string{
 				//        abcd    abcd
-				[]string{"sm  ", "sm  "},
-				[]string{"  ms", "  ms"},
-				[]string{"s  m", "s  m"},
-				[]string{" ms ", " ms "},
-				[]string{" sm ", "  ms"}, // Slave moved to d for more balanced'ness.
-				[]string{" s m", " s m"},
-				[]string{"ms  ", "ms  "},
-				[]string{"m s ", "m s "},
+				{"sm  ", "sm  "},
+				{"  ms", "  ms"},
+				{"s  m", "s  m"},
+				{" ms ", " ms "},
+				{" sm ", "  ms"}, // Slave moved to d for more balanced'ness.
+				{" s m", " s m"},
+				{"ms  ", "ms  "},
+				{"m s ", "m s "},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
@@ -1784,14 +1784,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "8 partitions, 4 nodes don't change, so no changes",
 			FromTo: [][]string{
 				//        abcd    abcd
-				[]string{"sm  ", "sm  "},
-				[]string{"  ms", "  ms"},
-				[]string{"s  m", "s  m"},
-				[]string{" ms ", " ms "},
-				[]string{" sm ", "  ms"},
-				[]string{" s m", " s m"},
-				[]string{"ms  ", "ms  "},
-				[]string{"m s ", "m s "},
+				{"sm  ", "sm  "},
+				{"  ms", "  ms"},
+				{"s  m", "s  m"},
+				{" ms ", " ms "},
+				{" sm ", "  ms"},
+				{" s m", " s m"},
+				{"ms  ", "ms  "},
+				{"m s ", "m s "},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
@@ -1803,14 +1803,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "single node swap, from node b to node e",
 			FromTo: [][]string{
 				//        abcd    abcde
-				[]string{" m s", "   sm"},
-				[]string{"  ms", "  ms "},
-				[]string{"s  m", "s  m "},
-				[]string{" ms ", "  s m"},
-				[]string{" sm ", "  m s"},
-				[]string{"s  m", "s  m "},
-				[]string{"ms  ", "m   s"},
-				[]string{"m s ", "m s  "},
+				{" m s", "   sm"},
+				{"  ms", "  ms "},
+				{"s  m", "s  m "},
+				{" ms ", "  s m"},
+				{" sm ", "  m s"},
+				{"s  m", "s  m "},
+				{"ms  ", "m   s"},
+				{"m s ", "m s  "},
 			},
 			Nodes:          []string{"a", "b", "c", "d", "e"},
 			NodesToRemove:  []string{"b"},
@@ -1824,14 +1824,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "4 nodes to 3 nodes, remove node d",
 			FromTo: [][]string{
 				//        abcd    abc
-				[]string{" m s", "sm "},
-				[]string{"  ms", "s m"},
-				[]string{"s  m", "m s"},
-				[]string{" ms ", " ms"},
-				[]string{" sm ", " sm"},
-				[]string{"s  m", "sm "},
-				[]string{"ms  ", "ms "},
-				[]string{"m s ", "m s"},
+				{" m s", "sm "},
+				{"  ms", "s m"},
+				{"s  m", "m s"},
+				{" ms ", " ms"},
+				{" sm ", " sm"},
+				{"s  m", "sm "},
+				{"ms  ", "ms "},
+				{"m s ", "m s"},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{"d"},
@@ -1847,14 +1847,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			About:  "change constraints from 1 slave to 0 slaves",
 			FromTo: [][]string{
 				//        abcd    abcd
-				[]string{" m s", " m  "},
-				[]string{"  ms", "  m "},
-				[]string{"s  m", "   m"},
-				[]string{" ms ", " m  "},
-				[]string{" sm ", "  m "},
-				[]string{"s  m", "   m"},
-				[]string{"ms  ", "m   "},
-				[]string{"m s ", "m   "},
+				{" m s", " m  "},
+				{"  ms", "  m "},
+				{"s  m", "   m"},
+				{" ms ", " m  "},
+				{" sm ", "  m "},
+				{"s  m", "   m"},
+				{"ms  ", "m   "},
+				{"m s ", "m   "},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
@@ -1866,14 +1866,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "8 partitions, 1 to 8 nodes",
 			FromTo: [][]string{
 				//             abcdefgh
-				[]string{"m", "sm      "},
-				[]string{"m", "  ms    "},
-				[]string{"m", "  sm    "},
-				[]string{"m", "    ms  "},
-				[]string{"m", "    sm  "},
-				[]string{"m", "      ms"},
-				[]string{"m", "      sm"},
-				[]string{"m", "ms      "},
+				{"m", "sm      "},
+				{"m", "  ms    "},
+				{"m", "  sm    "},
+				{"m", "    ms  "},
+				{"m", "    sm  "},
+				{"m", "      ms"},
+				{"m", "      sm"},
+				{"m", "ms      "},
 			},
 			Nodes:          []string{"a", "b", "c", "d", "e", "f", "g", "h"},
 			NodesToRemove:  []string{},
@@ -1885,14 +1885,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "8 partitions, 1 to 8 nodes, 0 slaves",
 			FromTo: [][]string{
 				//             abcdefgh
-				[]string{"m", " m      "},
-				[]string{"m", "  m     "},
-				[]string{"m", "   m    "},
-				[]string{"m", "    m   "},
-				[]string{"m", "     m  "},
-				[]string{"m", "      m "},
-				[]string{"m", "       m"},
-				[]string{"m", "m       "},
+				{"m", " m      "},
+				{"m", "  m     "},
+				{"m", "   m    "},
+				{"m", "    m   "},
+				{"m", "     m  "},
+				{"m", "      m "},
+				{"m", "       m"},
+				{"m", "m       "},
 			},
 			Nodes:          []string{"a", "b", "c", "d", "e", "f", "g", "h"},
 			NodesToRemove:  []string{},
@@ -1904,14 +1904,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "8 partitions, 4 nodes, increase partition 000 weight",
 			FromTo: [][]string{
 				//        abcd    abcd
-				[]string{"sm  ", " m s"},
-				[]string{"  ms", "s m "},
-				[]string{"s  m", "s  m"},
-				[]string{" ms ", "  sm"},
-				[]string{" sm ", " sm "},
-				[]string{" s m", " s m"},
-				[]string{"ms  ", "ms  "},
-				[]string{"m s ", "m s "},
+				{"sm  ", " m s"},
+				{"  ms", "s m "},
+				{"s  m", "s  m"},
+				{" ms ", "  sm"},
+				{" sm ", " sm "},
+				{" s m", " s m"},
+				{"ms  ", "ms  "},
+				{"m s ", "m s "},
 			},
 			Nodes:            []string{"a", "b", "c", "d"},
 			NodesToRemove:    []string{},
@@ -1924,14 +1924,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "8 partitions, 4 nodes, increase partition 004 weight",
 			FromTo: [][]string{
 				//        abcd    abcd
-				[]string{"sm  ", "sm  "},
-				[]string{"  ms", "s  m"},
-				[]string{"s  m", "s  m"},
-				[]string{" ms ", " ms "},
-				[]string{" sm ", "  ms"},
-				[]string{" s m", " s m"},
-				[]string{"ms  ", "ms  "},
-				[]string{"m s ", "m s "},
+				{"sm  ", "sm  "},
+				{"  ms", "s  m"},
+				{"s  m", "s  m"},
+				{" ms ", " ms "},
+				{" sm ", "  ms"},
+				{" s m", " s m"},
+				{"ms  ", "ms  "},
+				{"m s ", "m s "},
 			},
 			Nodes:            []string{"a", "b", "c", "d"},
 			NodesToRemove:    []string{},
@@ -1944,14 +1944,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "8 partitions, 4 nodes, increase partition 000, 004 weight",
 			FromTo: [][]string{
 				//        abcd    abcd
-				[]string{"sm  ", " m s"}, // partition 000.
-				[]string{"  ms", " s m"},
-				[]string{"s  m", "  sm"},
-				[]string{" ms ", "m s "},
-				[]string{" sm ", "s m "}, // partition 004.
-				[]string{" s m", " s m"},
-				[]string{"ms  ", "ms  "},
-				[]string{"m s ", "m s "},
+				{"sm  ", " m s"}, // partition 000.
+				{"  ms", " s m"},
+				{"s  m", "  sm"},
+				{" ms ", "m s "},
+				{" sm ", "s m "}, // partition 004.
+				{" s m", " s m"},
+				{"ms  ", "ms  "},
+				{"m s ", "m s "},
 			},
 			Nodes:            []string{"a", "b", "c", "d"},
 			NodesToRemove:    []string{},
@@ -1966,14 +1966,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "4 nodes to 3 nodes, remove node d, high stickiness",
 			FromTo: [][]string{
 				//        abcd    abc
-				[]string{" m s", "sm "},
-				[]string{"  ms", "s m"},
-				[]string{"s  m", "m s"},
-				[]string{" ms ", " ms"},
-				[]string{" sm ", " sm"},
-				[]string{"s  m", "sm "},
-				[]string{"ms  ", "ms "},
-				[]string{"m s ", "m s"},
+				{" m s", "sm "},
+				{"  ms", "s m"},
+				{"s  m", "m s"},
+				{" ms ", " ms"},
+				{" sm ", " sm"},
+				{"s  m", "sm "},
+				{"ms  ", "ms "},
+				{"m s ", "m s"},
 			},
 			Nodes:           []string{"a", "b", "c", "d"},
 			NodesToRemove:   []string{"d"},
@@ -1986,9 +1986,9 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "3 partitions, 2 nodes add 1 node, sm first",
 			FromTo: [][]string{
 				//        ab    abc
-				[]string{"sm", "s m"},
-				[]string{"ms", "ms "},
-				[]string{"sm", " ms"},
+				{"sm", "s m"},
+				{"ms", "ms "},
+				{"sm", " ms"},
 			},
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
@@ -2000,9 +2000,9 @@ func TestPlanNextMapVis(t *testing.T) {
 			About: "3 partitions, 2 nodes add 1 node, ms first",
 			FromTo: [][]string{
 				//        ab    abc
-				[]string{"ms", " sm"},
-				[]string{"sm", "sm "},
-				[]string{"ms", "m s"},
+				{"ms", " sm"},
+				{"sm", "sm "},
+				{"ms", "m s"},
 			},
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
@@ -2015,14 +2015,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			// ISSUE: result does not have 2nd order of balance'd-ness.
 			FromTo: [][]string{
 				//        ab    abc
-				[]string{"sm", "s m"},
-				[]string{"sm", "s m"},
-				[]string{"sm", " ms"},
-				[]string{"sm", " ms"},
-				[]string{"ms", "s m"},
-				[]string{"ms", "ms "},
-				[]string{"ms", "ms "},
-				[]string{"ms", "ms "},
+				{"sm", "s m"},
+				{"sm", "s m"},
+				{"sm", " ms"},
+				{"sm", " ms"},
+				{"ms", "s m"},
+				{"ms", "ms "},
+				{"ms", "ms "},
+				{"ms", "ms "},
 			},
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
@@ -2035,14 +2035,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			// ISSUE: result does not have 2nd order of balance'd-ness.
 			FromTo: [][]string{
 				//        ab    abc
-				[]string{"ms", " sm"},
-				[]string{"ms", " sm"},
-				[]string{"ms", "m s"},
-				[]string{"ms", "m s"},
-				[]string{"sm", " sm"},
-				[]string{"sm", "sm "},
-				[]string{"sm", "sm "},
-				[]string{"sm", "sm "},
+				{"ms", " sm"},
+				{"ms", " sm"},
+				{"ms", "m s"},
+				{"ms", "m s"},
+				{"sm", " sm"},
+				{"sm", "sm "},
+				{"sm", "sm "},
+				{"sm", "sm "},
 			},
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
@@ -2057,14 +2057,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			// balance'd-ness.
 			FromTo: [][]string{
 				//        ab    abc
-				[]string{"ms", " sm"},
-				[]string{"sm", "s m"},
-				[]string{"ms", "m s"},
-				[]string{"sm", " ms"},
-				[]string{"ms", "ms "},
-				[]string{"sm", "sm "},
-				[]string{"ms", "ms "},
-				[]string{"sm", "sm "},
+				{"ms", " sm"},
+				{"sm", "s m"},
+				{"ms", "m s"},
+				{"sm", " ms"},
+				{"ms", "ms "},
+				{"sm", "sm "},
+				{"ms", "ms "},
+				{"sm", "sm "},
 			},
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
@@ -2079,14 +2079,14 @@ func TestPlanNextMapVis(t *testing.T) {
 			// balance'd-ness.
 			FromTo: [][]string{
 				//        ab    abc
-				[]string{"sm", "s m"},
-				[]string{"ms", " sm"},
-				[]string{"sm", " ms"},
-				[]string{"ms", "m s"},
-				[]string{"sm", "sm "},
-				[]string{"ms", "ms "},
-				[]string{"sm", "sm "},
-				[]string{"ms", "ms "},
+				{"sm", "s m"},
+				{"ms", " sm"},
+				{"sm", " ms"},
+				{"ms", "m s"},
+				{"sm", "sm "},
+				{"ms", "ms "},
+				{"sm", "sm "},
+				{"ms", "ms "},
 			},
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
@@ -2120,7 +2120,7 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 	}
 	hierarchyRulesWantSameRack := HierarchyRules{
 		"slave": []*HierarchyRule{
-			&HierarchyRule{
+			{
 				IncludeLevel: 1,
 				ExcludeLevel: 0,
 			},
@@ -2128,7 +2128,7 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 	}
 	hierarchyRulesWantOtherRack := HierarchyRules{
 		"slave": []*HierarchyRule{
-			&HierarchyRule{
+			{
 				IncludeLevel: 2,
 				ExcludeLevel: 1,
 			},
@@ -2139,14 +2139,14 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 			About: "2 racks, but nil hierarchy rules",
 			FromTo: [][]string{
 				//            abcd
-				[]string{"", "ms  "},
-				[]string{"", "sm  "},
-				[]string{"", "  ms"},
-				[]string{"", "  sm"},
-				[]string{"", "m s "},
-				[]string{"", " m s"},
-				[]string{"", "s m "},
-				[]string{"", " s m"},
+				{"", "ms  "},
+				{"", "sm  "},
+				{"", "  ms"},
+				{"", "  sm"},
+				{"", "m s "},
+				{"", " m s"},
+				{"", "s m "},
+				{"", " s m"},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
@@ -2160,14 +2160,14 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 			About: "2 racks, favor same rack for slave",
 			FromTo: [][]string{
 				//            abcd
-				[]string{"", "ms  "},
-				[]string{"", "sm  "},
-				[]string{"", "  ms"},
-				[]string{"", "  sm"},
-				[]string{"", "ms  "},
-				[]string{"", "sm  "},
-				[]string{"", "  ms"},
-				[]string{"", "  sm"},
+				{"", "ms  "},
+				{"", "sm  "},
+				{"", "  ms"},
+				{"", "  sm"},
+				{"", "ms  "},
+				{"", "sm  "},
+				{"", "  ms"},
+				{"", "  sm"},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
@@ -2181,14 +2181,14 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 			About: "2 racks, favor other rack for slave",
 			FromTo: [][]string{
 				//            abcd
-				[]string{"", "m s "},
-				[]string{"", " m s"},
-				[]string{"", "s m "},
-				[]string{"", " s m"},
-				[]string{"", "m  s"},
-				[]string{"", " ms "},
-				[]string{"", " sm "},
-				[]string{"", "s  m"},
+				{"", "m s "},
+				{"", " m s"},
+				{"", "s m "},
+				{"", " s m"},
+				{"", "m  s"},
+				{"", " ms "},
+				{"", " sm "},
+				{"", "s  m"},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
@@ -2202,14 +2202,14 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 			About: "2 racks, add node to 2nd rack",
 			FromTo: [][]string{
 				//        abcd    abcde
-				[]string{"m s ", "s   m"},
-				[]string{" m s", " m  s"},
-				[]string{"s m ", "s m  "},
-				[]string{" s m", " s m "},
-				[]string{"m  s", "m  s "},
-				[]string{" ms ", " ms  "},
-				[]string{" sm ", " sm  "},
-				[]string{"s  m", "s  m "},
+				{"m s ", "s   m"},
+				{" m s", " m  s"},
+				{"s m ", "s m  "},
+				{" s m", " s m "},
+				{"m  s", "m  s "},
+				{" ms ", " ms  "},
+				{" sm ", " sm  "},
+				{"s  m", "s  m "},
 			},
 			Nodes:          []string{"a", "b", "c", "d", "e"},
 			NodesToRemove:  []string{},
@@ -2225,14 +2225,14 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 			About: "2 racks, remove 1 node from rack 1",
 			FromTo: [][]string{
 				//        abcd    abcd
-				[]string{"m s ", "m s "},
-				[]string{" m s", "m  s"},
-				[]string{"s m ", "s m "},
-				[]string{" s m", "s  m"},
-				[]string{"m  s", "m  s"},
-				[]string{" ms ", "s m "},
-				[]string{" sm ", "s m "},
-				[]string{"s  m", "s  m"},
+				{"m s ", "m s "},
+				{" m s", "m  s"},
+				{"s m ", "s m "},
+				{" s m", "s  m"},
+				{"m  s", "m  s"},
+				{" ms ", "s m "},
+				{" sm ", "s m "},
+				{"s  m", "s  m"},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{"b"},
@@ -2257,14 +2257,14 @@ func TestMultiMaster(t *testing.T) {
 			About: "1 node",
 			FromTo: [][]string{
 				//            a
-				[]string{"", "m"},
-				[]string{"", "m"},
-				[]string{"", "m"},
-				[]string{"", "m"},
-				[]string{"", "m"},
-				[]string{"", "m"},
-				[]string{"", "m"},
-				[]string{"", "m"},
+				{"", "m"},
+				{"", "m"},
+				{"", "m"},
+				{"", "m"},
+				{"", "m"},
+				{"", "m"},
+				{"", "m"},
+				{"", "m"},
 			},
 			Nodes:          []string{"a"},
 			NodesToRemove:  []string{},
@@ -2277,14 +2277,14 @@ func TestMultiMaster(t *testing.T) {
 			About: "4 nodes",
 			FromTo: [][]string{
 				//            abcd
-				[]string{"", "mm  "},
-				[]string{"", "  mm"},
-				[]string{"", "mm  "},
-				[]string{"", "  mm"},
-				[]string{"", "mm  "},
-				[]string{"", "  mm"},
-				[]string{"", "mm  "},
-				[]string{"", "  mm"},
+				{"", "mm  "},
+				{"", "  mm"},
+				{"", "mm  "},
+				{"", "  mm"},
+				{"", "mm  "},
+				{"", "  mm"},
+				{"", "mm  "},
+				{"", "  mm"},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
@@ -2296,14 +2296,14 @@ func TestMultiMaster(t *testing.T) {
 			About: "4 node stability",
 			FromTo: [][]string{
 				//        abcd
-				[]string{"mm  ", "mm  "},
-				[]string{"  mm", "  mm"},
-				[]string{"mm  ", "mm  "},
-				[]string{"  mm", "  mm"},
-				[]string{"mm  ", "mm  "},
-				[]string{"  mm", "  mm"},
-				[]string{"mm  ", "mm  "},
-				[]string{"  mm", "  mm"},
+				{"mm  ", "mm  "},
+				{"  mm", "  mm"},
+				{"mm  ", "mm  "},
+				{"  mm", "  mm"},
+				{"mm  ", "mm  "},
+				{"  mm", "  mm"},
+				{"mm  ", "mm  "},
+				{"  mm", "  mm"},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
@@ -2318,15 +2318,15 @@ func TestMultiMaster(t *testing.T) {
 			About:  "4 node remove 1 node",
 			FromTo: [][]string{
 				//        abcd    abcd
-				[]string{"mm  ", " mm "},
-				[]string{"  mm", "  mm"},
-				[]string{"mm  ", " m m"},
-				[]string{"  mm", "  mm"},
-				[]string{"mm  ", " mm "},
-				[]string{"  mm", " mm "},
-				[]string{"mm  ", " m m"},
+				{"mm  ", " mm "},
+				{"  mm", "  mm"},
+				{"mm  ", " m m"},
+				{"  mm", "  mm"},
+				{"mm  ", " mm "},
+				{"  mm", " mm "},
+				{"mm  ", " m m"},
 				// TODO: result is [d,c], but expected can only say [c,d].
-				[]string{"  mm", "  mm"},
+				{"  mm", "  mm"},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{"a"},
@@ -2341,15 +2341,15 @@ func TestMultiMaster(t *testing.T) {
 			About:  "4 node remove 2 nodes",
 			FromTo: [][]string{
 				//        abcd    abcd
-				[]string{"mm  ", " m m"},
-				[]string{"  mm", " m m"},
-				[]string{"mm  ", " m m"},
-				[]string{"  mm", " m m"},
-				[]string{"mm  ", " m m"},
-				[]string{"  mm", " m m"},
-				[]string{"mm  ", " m m"},
+				{"mm  ", " m m"},
+				{"  mm", " m m"},
+				{"mm  ", " m m"},
+				{"  mm", " m m"},
+				{"mm  ", " m m"},
+				{"  mm", " m m"},
+				{"mm  ", " m m"},
 				// TODO: result is [d,c], but expected can only say [c,d].
-				[]string{"  mm", "  mm"},
+				{"  mm", "  mm"},
 			},
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{"a", "c"},
@@ -2375,14 +2375,14 @@ func Test2Slaves(t *testing.T) {
 			About: "8 partitions, 1 master, 2 slaves, from 0 to 4 nodes",
 			FromTo: [][]string{
 				//            a b c d
-				[]string{"", "m0s0s1  "},
-				[]string{"", "s0m0  s1"},
-				[]string{"", "s0s1m0  "},
-				[]string{"", "s0  s1m0"},
-				[]string{"", "m0s1  s0"},
-				[]string{"", "  m0s0s1"},
-				[]string{"", "s1  m0s0"},
-				[]string{"", "  s0s1m0"},
+				{"", "m0s0s1  "},
+				{"", "s0m0  s1"},
+				{"", "s0s1m0  "},
+				{"", "s0  s1m0"},
+				{"", "m0s1  s0"},
+				{"", "  m0s0s1"},
+				{"", "s1  m0s0"},
+				{"", "  s0s1m0"},
 			},
 			FromToPriority: true,
 			Nodes:          []string{"a", "b", "c", "d"},
@@ -2395,14 +2395,14 @@ func Test2Slaves(t *testing.T) {
 			About: "8 partitions, reconverge 1 master, 2 slaves, from 4 to 4 nodes",
 			FromTo: [][]string{
 				//        a b c d     a b c d
-				[]string{"m0s0s1  ", "m0s0s1  "},
-				[]string{"s0m0  s1", "s0m0  s1"},
-				[]string{"s0s1m0  ", "s0s1m0  "},
-				[]string{"s1  s0m0", "s0  s1m0"}, // Flipped slaves reconverges.
-				[]string{"m0s1  s0", "m0s1  s0"},
-				[]string{"  m0s0s1", "  m0s0s1"},
-				[]string{"s1  m0s0", "s1  m0s0"},
-				[]string{"  s0s1m0", "  s0s1m0"},
+				{"m0s0s1  ", "m0s0s1  "},
+				{"s0m0  s1", "s0m0  s1"},
+				{"s0s1m0  ", "s0s1m0  "},
+				{"s1  s0m0", "s0  s1m0"}, // Flipped slaves reconverges.
+				{"m0s1  s0", "m0s1  s0"},
+				{"  m0s0s1", "  m0s0s1"},
+				{"s1  m0s0", "s1  m0s0"},
+				{"  s0s1m0", "  s0s1m0"},
 			},
 			FromToPriority: true,
 			Nodes:          []string{"a", "b", "c", "d"},
@@ -2415,13 +2415,13 @@ func Test2Slaves(t *testing.T) {
 			About: "7 partitions, 1 master, 2 slaves, from 0 to 4 nodes",
 			FromTo: [][]string{
 				//            a b c d
-				[]string{"", "m0s0  s1"},
-				[]string{"", "s1m0s0  "},
-				[]string{"", "s1  m0s0"},
-				[]string{"", "  s0s1m0"},
-				[]string{"", "m0  s0s1"},
-				[]string{"", "s1m0  s0"},
-				[]string{"", "s1s0m0  "},
+				{"", "m0s0  s1"},
+				{"", "s1m0s0  "},
+				{"", "s1  m0s0"},
+				{"", "  s0s1m0"},
+				{"", "m0  s0s1"},
+				{"", "s1m0  s0"},
+				{"", "s1s0m0  "},
 			},
 			FromToPriority: true,
 			Nodes:          []string{"a", "b", "c", "d"},
@@ -2434,13 +2434,13 @@ func Test2Slaves(t *testing.T) {
 			About: "7 partitions, reconverge 1 master, 2 slaves, from 4 to 4 nodes",
 			FromTo: [][]string{
 				//        a b c d     a b c d
-				[]string{"m0s0  s1", "m0s0  s1"},
-				[]string{"s1m0s0  ", "s1m0s0  "},
-				[]string{"s1  m0s0", "s1  m0s0"},
-				[]string{"  s0s1m0", "  s0s1m0"},
-				[]string{"m0  s0s1", "m0  s0s1"},
-				[]string{"s1m0  s0", "s1m0  s0"},
-				[]string{"s1s0m0  ", "s1s0m0  "},
+				{"m0s0  s1", "m0s0  s1"},
+				{"s1m0s0  ", "s1m0s0  "},
+				{"s1  m0s0", "s1  m0s0"},
+				{"  s0s1m0", "  s0s1m0"},
+				{"m0  s0s1", "m0  s0s1"},
+				{"s1m0  s0", "s1m0  s0"},
+				{"s1s0m0  ", "s1s0m0  "},
 			},
 			FromToPriority: true,
 			Nodes:          []string{"a", "b", "c", "d"},
@@ -2453,22 +2453,22 @@ func Test2Slaves(t *testing.T) {
 			About: "16 partitions, 1 master, 2 slaves, from 0 to 4 nodes",
 			FromTo: [][]string{
 				//            a b c d
-				[]string{"", "m0s0s1  "},
-				[]string{"", "s0m0  s1"},
-				[]string{"", "  s0m0s1"},
-				[]string{"", "s0  s1m0"},
-				[]string{"", "m0s1  s0"},
-				[]string{"", "  m0s0s1"},
-				[]string{"", "s0  m0s1"},
-				[]string{"", "  s0s1m0"},
-				[]string{"", "m0  s0s1"},
-				[]string{"", "s0m0s1  "},
-				[]string{"", "  s0m0s1"},
-				[]string{"", "s0s1  m0"},
-				[]string{"", "m0s0s1  "},
-				[]string{"", "s0m0  s1"},
-				[]string{"", "s0s1m0  "},
-				[]string{"", "s0  s1m0"},
+				{"", "m0s0s1  "},
+				{"", "s0m0  s1"},
+				{"", "  s0m0s1"},
+				{"", "s0  s1m0"},
+				{"", "m0s1  s0"},
+				{"", "  m0s0s1"},
+				{"", "s0  m0s1"},
+				{"", "  s0s1m0"},
+				{"", "m0  s0s1"},
+				{"", "s0m0s1  "},
+				{"", "  s0m0s1"},
+				{"", "s0s1  m0"},
+				{"", "m0s0s1  "},
+				{"", "s0m0  s1"},
+				{"", "s0s1m0  "},
+				{"", "s0  s1m0"},
 			},
 			FromToPriority: true,
 			Nodes:          []string{"a", "b", "c", "d"},
@@ -2481,22 +2481,22 @@ func Test2Slaves(t *testing.T) {
 			About: "re-feed 16 partitions, 1 master, 2 slaves, from 4 to 4 nodes",
 			FromTo: [][]string{
 				//        a b c d     a b c d
-				[]string{"m0s0s1  ", "m0s0s1  "},
-				[]string{"s0m0  s1", "s0m0  s1"},
-				[]string{"  s0m0s1", "  s0m0s1"},
-				[]string{"s0  s1m0", "s0  s1m0"},
-				[]string{"m0s1  s0", "m0s1  s0"},
-				[]string{"  m0s0s1", "  m0s0s1"},
-				[]string{"s0  m0s1", "s0  m0s1"},
-				[]string{"  s0s1m0", "  s0s1m0"},
-				[]string{"m0  s0s1", "m0  s0s1"},
-				[]string{"s0m0s1  ", "s0m0s1  "},
-				[]string{"  s0m0s1", "  s0m0s1"},
-				[]string{"s0s1  m0", "s0s1  m0"},
-				[]string{"m0s0s1  ", "m0s0s1  "},
-				[]string{"s0m0  s1", "s0m0  s1"},
-				[]string{"s0s1m0  ", "s0s1m0  "},
-				[]string{"s0  s1m0", "s0  s1m0"},
+				{"m0s0s1  ", "m0s0s1  "},
+				{"s0m0  s1", "s0m0  s1"},
+				{"  s0m0s1", "  s0m0s1"},
+				{"s0  s1m0", "s0  s1m0"},
+				{"m0s1  s0", "m0s1  s0"},
+				{"  m0s0s1", "  m0s0s1"},
+				{"s0  m0s1", "s0  m0s1"},
+				{"  s0s1m0", "  s0s1m0"},
+				{"m0  s0s1", "m0  s0s1"},
+				{"s0m0s1  ", "s0m0s1  "},
+				{"  s0m0s1", "  s0m0s1"},
+				{"s0s1  m0", "s0s1  m0"},
+				{"m0s0s1  ", "m0s0s1  "},
+				{"s0m0  s1", "s0m0  s1"},
+				{"s0s1m0  ", "s0s1m0  "},
+				{"s0  s1m0", "s0  s1m0"},
 			},
 			FromToPriority: true,
 			Nodes:          []string{"a", "b", "c", "d"},

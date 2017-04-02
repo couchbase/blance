@@ -17,7 +17,10 @@ import (
 	"sync"
 )
 
+// ErrorStopped is returned when an operation was stopped
 var ErrorStopped = errors.New("stopped")
+
+// ErrorInterrupt is returned when an operation was interrupted
 var ErrorInterrupt = errors.New("interrupt")
 
 /*
@@ -185,6 +188,7 @@ func LowestWeightPartitionMoveForNode(
 	return r
 }
 
+// MoveOpWeight sets the weight associated with each op
 var MoveOpWeight = map[string]int{
 	"promote": 1,
 	"demote":  2,
@@ -223,7 +227,7 @@ type partitionMoveReq struct {
 
 // ------------------------------------------
 
-// OrchestratorMoves asynchronously begins reassigning partitions
+// OrchestrateMoves asynchronously begins reassigning partitions
 // amongst nodes in order to transition from the begMap to the endMap
 // state, invoking the assignPartition() to affect changes.
 // Additionally, the caller must read the progress channel until it's
@@ -337,7 +341,7 @@ func OrchestrateMoves(
 	return o, nil
 }
 
-// Stop() asynchronously requests the orchestrator to stop, where the
+// Stop asynchronously requests the orchestrator to stop, where the
 // caller will eventually see a closed progress channel.
 func (o *Orchestrator) Stop() {
 	o.m.Lock()
@@ -349,7 +353,7 @@ func (o *Orchestrator) Stop() {
 	o.m.Unlock()
 }
 
-// ProgressCh() returns a channel that is updated occassionally when
+// ProgressCh returns a channel that is updated occasionally when
 // the orchestrator has made some progress on one or more partition
 // reassignments, or has reached an error.  The channel is closed by
 // the orchestrator when it is finished, either naturally, or due to
@@ -359,7 +363,7 @@ func (o *Orchestrator) ProgressCh() chan OrchestratorProgress {
 	return o.progressCh
 }
 
-// PauseNewAssignments() disallows the orchestrator from starting any
+// PauseNewAssignments disallows the orchestrator from starting any
 // new assignments of partitions to nodes.  Any inflight partition
 // moves will continue to be finished.  The caller can monitor the
 // ProgressCh to determine when to pause and/or resume partition
@@ -434,12 +438,12 @@ func (o *Orchestrator) moverLoop(stopCh chan struct{},
 		case <-stopCh:
 			return nil
 
-		case partitionMoveReq, ok := <-partitionMoveReqCh:
+		case partitionMoveReqVal, ok := <-partitionMoveReqCh:
 			if !ok {
 				return nil
 			}
 
-			partitionMove := partitionMoveReq.partitionMove
+			partitionMove := partitionMoveReqVal.partitionMove
 			partition := partitionMove.Partition
 			state := partitionMove.State
 
@@ -458,17 +462,17 @@ func (o *Orchestrator) moverLoop(stopCh chan struct{},
 				}
 			})
 
-			if partitionMoveReq.doneCh != nil {
+			if partitionMoveReqVal.doneCh != nil {
 				if err != nil {
 					select {
 					case <-stopCh:
 						// NO-OP.
-					case partitionMoveReq.doneCh <- err:
+					case partitionMoveReqVal.doneCh <- err:
 						// NO-OP.
 					}
 				}
 
-				close(partitionMoveReq.doneCh)
+				close(partitionMoveReqVal.doneCh)
 			}
 		}
 	}
@@ -489,7 +493,7 @@ func (o *Orchestrator) runSupplyMoves(stopCh chan struct{},
 		o.m.Lock()
 
 		// The availableMoves is keyed by node name.
-		availableMoves := o.findAvailableMoves_unlocked()
+		availableMoves := o.findAvailableMovesUnlocked()
 
 		pauseCh := o.pauseCh
 
@@ -693,9 +697,9 @@ func (o *Orchestrator) updateProgress(f func()) {
 	o.progressCh <- progress
 }
 
-// findAvailableMoves_unlocked returns the next round of available
+// findAvailableMovesUnlocked returns the next round of available
 // moves.
-func (o *Orchestrator) findAvailableMoves_unlocked() (
+func (o *Orchestrator) findAvailableMovesUnlocked() (
 	availableMoves map[string][]*NextMoves) {
 	// The availableMoves is keyed by node name.
 	availableMoves = map[string][]*NextMoves{}
