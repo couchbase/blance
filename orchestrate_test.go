@@ -14,7 +14,7 @@ type assignPartitionRec struct {
 }
 
 var mrPartitionModel = PartitionModel{
-	"master": &PartitionModelState{
+	"primary": &PartitionModelState{
 		Priority: 0,
 	},
 	"replica": &PartitionModelState{
@@ -71,7 +71,7 @@ func TestOrchestrateErrAssignPartitionFunc(t *testing.T) {
 			"00": &Partition{
 				Name: "00",
 				NodesByState: map[string][]string{
-					"master": {"a"},
+					"primary": {"a"},
 				},
 			},
 		},
@@ -79,7 +79,7 @@ func TestOrchestrateErrAssignPartitionFunc(t *testing.T) {
 			"00": &Partition{
 				Name: "00",
 				NodesByState: map[string][]string{
-					"master": {"b"},
+					"primary": {"b"},
 				},
 			},
 		},
@@ -178,21 +178,21 @@ func testOrchestratePauseResume(t *testing.T, numProgress int) {
 			"00": &Partition{
 				Name: "00",
 				NodesByState: map[string][]string{
-					"master":  {"a"},
+					"primary": {"a"},
 					"replica": {"b"},
 				},
 			},
 			"01": &Partition{
 				Name: "01",
 				NodesByState: map[string][]string{
-					"master":  {"a"},
+					"primary": {"a"},
 					"replica": {"b"},
 				},
 			},
 			"02": &Partition{
 				Name: "02",
 				NodesByState: map[string][]string{
-					"master":  {"a"},
+					"primary": {"a"},
 					"replica": {"b"},
 				},
 			},
@@ -201,21 +201,21 @@ func testOrchestratePauseResume(t *testing.T, numProgress int) {
 			"00": &Partition{
 				Name: "00",
 				NodesByState: map[string][]string{
-					"master":  {"b"},
+					"primary": {"b"},
 					"replica": {"a"},
 				},
 			},
 			"01": &Partition{
 				Name: "01",
 				NodesByState: map[string][]string{
-					"master":  {"b"},
+					"primary": {"b"},
 					"replica": {"a"},
 				},
 			},
 			"02": &Partition{
 				Name: "02",
 				NodesByState: map[string][]string{
-					"master":  {"b"},
+					"primary": {"b"},
 					"replica": {"a"},
 				},
 			},
@@ -304,14 +304,14 @@ func testOrchestratePauseResumeIntoMovesSupplier(t *testing.T,
 			"00": &Partition{
 				Name: "00",
 				NodesByState: map[string][]string{
-					"master":  {"a"},
+					"primary": {"a"},
 					"replica": {"b"},
 				},
 			},
 			"01": &Partition{
 				Name: "01",
 				NodesByState: map[string][]string{
-					"master":  {"b"},
+					"primary": {"b"},
 					"replica": {"c"},
 				},
 			},
@@ -320,14 +320,14 @@ func testOrchestratePauseResumeIntoMovesSupplier(t *testing.T,
 			"00": &Partition{
 				Name: "00",
 				NodesByState: map[string][]string{
-					"master":  {"b"},
+					"primary": {"b"},
 					"replica": {"c"},
 				},
 			},
 			"01": &Partition{
 				Name: "01",
 				NodesByState: map[string][]string{
-					"master":  {"c"},
+					"primary": {"c"},
 					"replica": {"a"},
 				},
 			},
@@ -391,7 +391,7 @@ func TestOrchestrateEarlyStop(t *testing.T) {
 			"00": &Partition{
 				Name: "00",
 				NodesByState: map[string][]string{
-					"master": {"a"},
+					"primary": {"a"},
 				},
 			},
 		},
@@ -399,7 +399,7 @@ func TestOrchestrateEarlyStop(t *testing.T) {
 			"00": &Partition{
 				Name: "00",
 				NodesByState: map[string][]string{
-					"master": {"b"},
+					"primary": {"b"},
 				},
 			},
 		},
@@ -511,14 +511,14 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 			},
 			expectAssignPartitions: map[string][]assignPartitionRec{
 				"00": {
 					{
-						partition: "00", node: "a", state: "master",
+						partition: "00", node: "a", state: "primary",
 					},
 				},
 			},
@@ -539,7 +539,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"a"},
+						"primary": {"a"},
 						"replica": {"b"},
 					},
 				},
@@ -547,7 +547,7 @@ func TestOrchestrateMoves(t *testing.T) {
 			expectAssignPartitions: map[string][]assignPartitionRec{
 				"00": {
 					{
-						partition: "00", node: "a", state: "master",
+						partition: "00", node: "a", state: "primary",
 					},
 					{
 						partition: "00", node: "b", state: "replica",
@@ -571,7 +571,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"a"},
+						"primary": {"a"},
 						"replica": {"b"},
 					},
 				},
@@ -579,7 +579,7 @@ func TestOrchestrateMoves(t *testing.T) {
 			expectAssignPartitions: map[string][]assignPartitionRec{
 				"00": {
 					{
-						partition: "00", node: "a", state: "master",
+						partition: "00", node: "a", state: "primary",
 					},
 					{
 						partition: "00", node: "b", state: "replica",
@@ -597,7 +597,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 			},
@@ -625,7 +625,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 			},
@@ -633,14 +633,14 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 			},
 			expectAssignPartitions: map[string][]assignPartitionRec{
 				"00": {
 					{
-						partition: "00", node: "b", state: "master",
+						partition: "00", node: "b", state: "primary",
 					},
 					{
 						partition: "00", node: "a", state: "",
@@ -658,7 +658,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"a"},
+						"primary": {"a"},
 						"replica": {"c"},
 					},
 				},
@@ -667,7 +667,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"b"},
+						"primary": {"b"},
 						"replica": {"c"},
 					},
 				},
@@ -675,7 +675,7 @@ func TestOrchestrateMoves(t *testing.T) {
 			expectAssignPartitions: map[string][]assignPartitionRec{
 				"00": {
 					{
-						partition: "00", node: "b", state: "master",
+						partition: "00", node: "b", state: "primary",
 					},
 					{
 						partition: "00", node: "a", state: "",
@@ -693,7 +693,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"a"},
+						"primary": {"a"},
 						"replica": {"b"},
 					},
 				},
@@ -702,7 +702,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"c"},
+						"primary": {"c"},
 						"replica": {"a"},
 					},
 				},
@@ -710,7 +710,7 @@ func TestOrchestrateMoves(t *testing.T) {
 			expectAssignPartitions: map[string][]assignPartitionRec{
 				"00": {
 					{
-						partition: "00", node: "c", state: "master",
+						partition: "00", node: "c", state: "primary",
 					},
 					{
 						partition: "00", node: "a", state: "replica",
@@ -741,14 +741,14 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"a"},
+						"primary": {"a"},
 						"replica": {"b"},
 					},
 				},
 				"01": &Partition{
 					Name: "01",
 					NodesByState: map[string][]string{
-						"master":  {"b"},
+						"primary": {"b"},
 						"replica": {"a"},
 					},
 				},
@@ -756,7 +756,7 @@ func TestOrchestrateMoves(t *testing.T) {
 			expectAssignPartitions: map[string][]assignPartitionRec{
 				"00": {
 					{
-						partition: "00", node: "a", state: "master",
+						partition: "00", node: "a", state: "primary",
 					},
 					{
 						partition: "00", node: "b", state: "replica",
@@ -764,7 +764,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				},
 				"01": {
 					{
-						partition: "01", node: "b", state: "master",
+						partition: "01", node: "b", state: "primary",
 					},
 					{
 						partition: "01", node: "a", state: "replica",
@@ -782,14 +782,14 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"a"},
+						"primary": {"a"},
 						"replica": {"b"},
 					},
 				},
 				"01": &Partition{
 					Name: "01",
 					NodesByState: map[string][]string{
-						"master":  {"b"},
+						"primary": {"b"},
 						"replica": {"a"},
 					},
 				},
@@ -798,14 +798,14 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"c"},
+						"primary": {"c"},
 						"replica": {"d"},
 					},
 				},
 				"01": &Partition{
 					Name: "01",
 					NodesByState: map[string][]string{
-						"master":  {"d"},
+						"primary": {"d"},
 						"replica": {"c"},
 					},
 				},
@@ -813,7 +813,7 @@ func TestOrchestrateMoves(t *testing.T) {
 			expectAssignPartitions: map[string][]assignPartitionRec{
 				"00": {
 					{
-						partition: "00", node: "c", state: "master",
+						partition: "00", node: "c", state: "primary",
 					},
 					{
 						partition: "00", node: "a", state: "",
@@ -827,7 +827,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				},
 				"01": {
 					{
-						partition: "01", node: "d", state: "master",
+						partition: "01", node: "d", state: "primary",
 					},
 					{
 						partition: "01", node: "b", state: "",
@@ -855,14 +855,14 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"b"},
+						"primary": {"b"},
 						"replica": {"a"},
 					},
 				},
 				"01": &Partition{
 					Name: "01",
 					NodesByState: map[string][]string{
-						"master":  {"b"},
+						"primary": {"b"},
 						"replica": {"a"},
 					},
 				},
@@ -871,14 +871,14 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"a"},
+						"primary": {"a"},
 						"replica": {"b"},
 					},
 				},
 				"01": &Partition{
 					Name: "01",
 					NodesByState: map[string][]string{
-						"master":  {"c"},
+						"primary": {"c"},
 						"replica": {"a"},
 					},
 				},
@@ -886,7 +886,7 @@ func TestOrchestrateMoves(t *testing.T) {
 			expectAssignPartitions: map[string][]assignPartitionRec{
 				"00": {
 					{
-						partition: "00", node: "a", state: "master",
+						partition: "00", node: "a", state: "primary",
 					},
 					{
 						partition: "00", node: "b", state: "replica",
@@ -894,7 +894,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				},
 				"01": {
 					{
-						partition: "01", node: "c", state: "master",
+						partition: "01", node: "c", state: "primary",
 					},
 					{
 						partition: "01", node: "b", state: "",
@@ -912,14 +912,14 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"b"},
+						"primary": {"b"},
 						"replica": {"a", "d", "e"},
 					},
 				},
 				"01": &Partition{
 					Name: "01",
 					NodesByState: map[string][]string{
-						"master":  {"b"},
+						"primary": {"b"},
 						"replica": {"a", "d", "e"},
 					},
 				},
@@ -928,14 +928,14 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"a"},
+						"primary": {"a"},
 						"replica": {"b", "d", "e"},
 					},
 				},
 				"01": &Partition{
 					Name: "01",
 					NodesByState: map[string][]string{
-						"master":  {"c"},
+						"primary": {"c"},
 						"replica": {"a", "d", "e"},
 					},
 				},
@@ -943,7 +943,7 @@ func TestOrchestrateMoves(t *testing.T) {
 			expectAssignPartitions: map[string][]assignPartitionRec{
 				"00": {
 					{
-						partition: "00", node: "a", state: "master",
+						partition: "00", node: "a", state: "primary",
 					},
 					{
 						partition: "00", node: "b", state: "replica",
@@ -951,7 +951,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				},
 				"01": {
 					{
-						partition: "01", node: "c", state: "master",
+						partition: "01", node: "c", state: "primary",
 					},
 					{
 						partition: "01", node: "b", state: "",
@@ -969,42 +969,42 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"a"},
+						"primary": {"a"},
 						"replica": {"b"},
 					},
 				},
 				"01": &Partition{
 					Name: "01",
 					NodesByState: map[string][]string{
-						"master":  {"b"},
+						"primary": {"b"},
 						"replica": {"c"},
 					},
 				},
 				"02": &Partition{
 					Name: "02",
 					NodesByState: map[string][]string{
-						"master":  {"c"},
+						"primary": {"c"},
 						"replica": {"d"},
 					},
 				},
 				"03": &Partition{
 					Name: "03",
 					NodesByState: map[string][]string{
-						"master":  {"d"},
+						"primary": {"d"},
 						"replica": {"e"},
 					},
 				},
 				"04": &Partition{
 					Name: "04",
 					NodesByState: map[string][]string{
-						"master":  {"e"},
+						"primary": {"e"},
 						"replica": {"f"},
 					},
 				},
 				"05": &Partition{
 					Name: "05",
 					NodesByState: map[string][]string{
-						"master":  {"f"},
+						"primary": {"f"},
 						"replica": {"g"},
 					},
 				},
@@ -1013,42 +1013,42 @@ func TestOrchestrateMoves(t *testing.T) {
 				"00": &Partition{
 					Name: "00",
 					NodesByState: map[string][]string{
-						"master":  {"b"},
+						"primary": {"b"},
 						"replica": {"c"},
 					},
 				},
 				"01": &Partition{
 					Name: "01",
 					NodesByState: map[string][]string{
-						"master":  {"c"},
+						"primary": {"c"},
 						"replica": {"d"},
 					},
 				},
 				"02": &Partition{
 					Name: "02",
 					NodesByState: map[string][]string{
-						"master":  {"d"},
+						"primary": {"d"},
 						"replica": {"e"},
 					},
 				},
 				"03": &Partition{
 					Name: "03",
 					NodesByState: map[string][]string{
-						"master":  {"e"},
+						"primary": {"e"},
 						"replica": {"f"},
 					},
 				},
 				"04": &Partition{
 					Name: "04",
 					NodesByState: map[string][]string{
-						"master":  {"f"},
+						"primary": {"f"},
 						"replica": {"g"},
 					},
 				},
 				"05": &Partition{
 					Name: "05",
 					NodesByState: map[string][]string{
-						"master":  {"g"},
+						"primary": {"g"},
 						"replica": {"a"},
 					},
 				},
@@ -1056,7 +1056,7 @@ func TestOrchestrateMoves(t *testing.T) {
 			expectAssignPartitions: map[string][]assignPartitionRec{
 				"00": {
 					{
-						partition: "00", node: "b", state: "master",
+						partition: "00", node: "b", state: "primary",
 					},
 					{
 						partition: "00", node: "a", state: "",
@@ -1067,7 +1067,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				},
 				"01": {
 					{
-						partition: "01", node: "c", state: "master",
+						partition: "01", node: "c", state: "primary",
 					},
 					{
 						partition: "01", node: "b", state: "",
@@ -1078,7 +1078,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				},
 				"02": {
 					{
-						partition: "02", node: "d", state: "master",
+						partition: "02", node: "d", state: "primary",
 					},
 					{
 						partition: "02", node: "c", state: "",
@@ -1089,7 +1089,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				},
 				"03": {
 					{
-						partition: "03", node: "e", state: "master",
+						partition: "03", node: "e", state: "primary",
 					},
 					{
 						partition: "03", node: "d", state: "",
@@ -1100,7 +1100,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				},
 				"04": {
 					{
-						partition: "04", node: "f", state: "master",
+						partition: "04", node: "f", state: "primary",
 					},
 					{
 						partition: "04", node: "e", state: "",
@@ -1111,7 +1111,7 @@ func TestOrchestrateMoves(t *testing.T) {
 				},
 				"05": {
 					{
-						partition: "05", node: "g", state: "master",
+						partition: "05", node: "g", state: "primary",
 					},
 					{
 						partition: "05", node: "f", state: "",

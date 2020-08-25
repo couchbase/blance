@@ -15,7 +15,7 @@ package blance
 // An array of NodeStateOp's could be interpreted as a series of
 // node-by-node state transitions for a partition.  For example, for
 // partition X, the NodeState transitions might be: first add node A
-// to "master", then demote node B to "replica", then remove (or del)
+// to "primary", then demote node B to "replica", then remove (or del)
 // partition X from node C.
 type NodeStateOp struct {
 	Node  string
@@ -28,17 +28,17 @@ type NodeStateOp struct {
 //
 // The states is an array of state names, like ["primary",
 // "hotStandBy", "coldStandBy"], and should be ordered by more
-// superior or important states coming earlier.  For example, "master"
+// superior or important states coming earlier.  For example, "primary"
 // should come before "replica".
 //
 // The begNodesByState and endNodesByState are keyed by stateName,
 // where the values are an array of node names.  For example,
-// {"master": ["a"], "replica": ["b", "c"]}.
+// {"primary": ["a"], "replica": ["b", "c"]}.
 //
 // The favorMinNodes should be true if the moves should be computed to
 // have the partition assigned to the least number of nodes at any
-// time (i.e., favoring max of single mastership, if even there are
-// temporarily no masters for a time); if false, then the algorithm
+// time (i.e., favoring max of single primary, if even there are
+// temporarily no primaries for a time); if false, then the algorithm
 // will instead try to assign the partition to 1 or more nodes,
 // favoring partition availability across multiple nodes during moves.
 func CalcPartitionMoves(

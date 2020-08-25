@@ -128,7 +128,7 @@ func planNextMapInnerEx(
 		candidateNodes := append([]string(nil), nodesNext...)
 
 		// Filter out nodes of a higher priority state; e.g., if we're
-		// assigning slaves, leave the masters untouched.
+		// assigning replicas, leave the primaries untouched.
 		excludeHigherPriorityNodes := func(remainingNodes []string) []string {
 			for stateName, stateNodes := range partition.NodesByState {
 				if model[stateName].Priority < statePriority {
@@ -276,7 +276,7 @@ func planNextMapInnerEx(
 		}
 	}
 
-	// Run through the sorted partition states (master, slave, etc)
+	// Run through the sorted partition states (primary, replica, etc)
 	// that have constraints and invoke assignStateToPartitions().
 	for _, stateName := range sortStateNames(model) {
 		constraints := 0
@@ -337,11 +337,11 @@ func adjustStateNodeCounts(stateNodeCounts map[string]map[string]int,
 }
 
 // Example, with input partitionMap of...
-//   { "0": { NodesByState: {"master": ["a"], "slave": ["b", "c"]} },
-//     "1": { NodesByState: {"master": ["b"], "slave": ["c"]} } }
+//   { "0": { NodesByState: {"primary": ["a"], "replica": ["b", "c"]} },
+//     "1": { NodesByState: {"primary": ["b"], "replica": ["c"]} } }
 // then return value will be...
-//   { "master": { "a": 1, "b": 1 },
-//     "slave": { "b": 1, "c": 2 } }
+//   { "primary": { "a": 1, "b": 1 },
+//     "replica": { "b": 1, "c": 2 } }
 func countStateNodes(
 	partitionMap PartitionMap,
 	partitionWeights map[string]int,
@@ -372,8 +372,8 @@ func countStateNodes(
 // --------------------------------------------------------
 
 // Returns a copy of nodesByState but with nodes removed.  Example,
-// when removeNodes == ["a"] and nodesByState == {"master": ["a"],
-// "slave": ["b"]}, then result will be {"master": [], "slave":
+// when removeNodes == ["a"] and nodesByState == {"primary": ["a"],
+// "replica": ["b"]}, then result will be {"primary": [], "replica":
 // ["b"]}.  Optional callback is invoked with the nodes that will
 // actually be removed.
 func removeNodesFromNodesByState(
@@ -391,7 +391,7 @@ func removeNodesFromNodesByState(
 	return rv
 }
 
-// Given a nodesByState, like {"master": ["a"], "slave": ["b", "c"]},
+// Given a nodesByState, like {"primary": ["a"], "replica": ["b", "c"]},
 // this function might return something like ["b", "c", "a"].
 func flattenNodesByState(nodesByState map[string][]string) []string {
 	rv := make([]string, 0)

@@ -11,18 +11,18 @@
 
 // Package blance provides a partition assignment library, using a
 // greedy, heuristic, functional approach.  It supports multiple,
-// configurable partition states (master, replica, read-only, etc),
+// configurable partition states (primary, replica, read-only, etc),
 // configurable multi-level containment hierarchy
 // (shelf/rack/zone/datacenter awareness) with inclusion/exclusion
 // policies, heterogeneous partition weights, heterogeneous node
-// weights, partition stickiness control, and multi-master support.
+// weights, partition stickiness control, and multi-primary support.
 package blance
 
 // A PartitionMap represents all the partitions for some logical
 // resource, where the partitions are assigned to different nodes and
 // with different states.  For example, partition "A-thru-H" is
-// assigned to node "x" as a "master" and to node "y" as a "replica".
-// And, partition "I-thru-Z" is assigned to node "y" as a "master" and
+// assigned to node "x" as a "primary" and to node "y" as a "replica".
+// And, partition "I-thru-Z" is assigned to node "y" as a "primary" and
 // to nodes "z" & "x" as "replica".
 type PartitionMap map[string]*Partition // Keyed by Partition.Name.
 
@@ -33,46 +33,46 @@ type Partition struct {
 	Name string `json:"name"`
 
 	// NodesByState is keyed is stateName, and the values are an array
-	// of node names.  For example, {"master": ["a"], "replica": ["b",
+	// of node names.  For example, {"primary": ["a"], "replica": ["b",
 	// "c"]}.
 	NodesByState map[string][]string `json:"nodesByState"`
 }
 
 // A PartitionModel lets applications define different states for each
-// partition per node, such as "master", "slave", "dead", etc.  Key is
-// stateName, like "master", "slave", "dead", etc.
+// partition per node, such as "primary", "replica", "dead", etc.  Key is
+// stateName, like "primary", "replica", "dead", etc.
 type PartitionModel map[string]*PartitionModelState
 
 // A PartitionModelState lets applications define metadata per
-// partition model state.  For example, "master" state should have
-// different priority and constraints than a "slave" state.
+// partition model state.  For example, "primary" state should have
+// different priority and constraints than a "replica" state.
 type PartitionModelState struct {
-	// Priority of zero is the highest.  e.g., "master" Priority
-	// should be < than "slave" Priority, so we can define that
-	// as "master" Priority of 0 and "slave" priority of 1.
+	// Priority of zero is the highest.  e.g., "primary" Priority
+	// should be < than "replica" Priority, so we can define that
+	// as "primary" Priority of 0 and "replica" priority of 1.
 	Priority int `json:"priority"`
 
 	// A Constraint defines how many nodes the algorithm strives to
 	// assign a partition.  For example, for any given partition,
-	// perhaps the application wants 1 node to have "master" state and
-	// wants 2 nodes to have "slave" state.  That is, the "master"
-	// state has Constraints of 1, and the "slave" state has
-	// Constraints of 2.  Continuing the example, when the "master"
-	// state has Priority of 0 and the "slave" state has Priority of
-	// 1, then "master" partitions will be assigned to nodes before
-	// "slave" partitions.
+	// perhaps the application wants 1 node to have "primary" state and
+	// wants 2 nodes to have "replica" state.  That is, the "primary"
+	// state has Constraints of 1, and the "replica" state has
+	// Constraints of 2.  Continuing the example, when the "primary"
+	// state has Priority of 0 and the "replica" state has Priority of
+	// 1, then "primary" partitions will be assigned to nodes before
+	// "replica" partitions.
 	Constraints int `json:"constraints"`
 }
 
 // HierarchyRules example:
-// {"slave":[{IncludeLevel:1,ExcludeLevel:0}]}, which means that after
-// a partition is assigned to a node as master, then assign the first
-// slave to a node that is a close sibling node to the master node
+// {"replica":[{IncludeLevel:1,ExcludeLevel:0}]}, which means that after
+// a partition is assigned to a node as primary, then assign the first
+// replica to a node that is a close sibling node to the primary node
 // (e.g., same parent or same rack).  Another example:
-// {"slave":[{IncludeLevel:1,ExcludeLevel:0},
+// {"replica":[{IncludeLevel:1,ExcludeLevel:0},
 // {IncludeLevel:2,ExcludeLevel:1}]}, which means assign the first
-// slave same as above, but assign the second slave to a node that is
-// not a sibling of the master (not the same parent, so to a different
+// replica same as above, but assign the second replica to a node that is
+// not a sibling of the primary (not the same parent, so to a different
 // rack).
 type HierarchyRules map[string][]*HierarchyRule
 
@@ -158,8 +158,8 @@ func PlanNextMapEx(
 // PlanNextMapOptions represents optional parameters to the
 // PlanNextMapEx() API.  The ModelStateConstraints allows the caller
 // to override the constraints defined in the model.  The
-// ModelStateConstraints is keyed by stateName (like "master",
-// "slave", etc).  The PartitionWeights is optional and is keyed by
+// ModelStateConstraints is keyed by stateName (like "primary",
+// "replica", etc).  The PartitionWeights is optional and is keyed by
 // partitionName; it allows the caller to specify that some partitions
 // are bigger than others (e.g., California has more records than
 // Hawaii); default partition weight is 1.  The StateStickiness is
@@ -171,7 +171,7 @@ func PlanNextMapEx(
 // weight is 1.  The NodeHierarchy defines optional parent
 // relationships per node; it is keyed by node and a value is the
 // node's parent.  The HierarchyRules allows the caller to optionally
-// define slave placement policy (e.g., same/different rack;
+// define replica placement policy (e.g., same/different rack;
 // same/different zone; etc).
 type PlanNextMapOptions struct {
 	ModelStateConstraints map[string]int    // Keyed by stateName.

@@ -29,7 +29,7 @@ via the FindMoveFunc callback.  Here are some move prioritization
 ideas or heuristics for FindMoveFunc implementors to consider.
 
 Some apps might first favor easy, single-node promotions and demotions
-(e.g., a replica partition graduating to master on the same node)
+(e.g., a replica partition graduating to primary on the same node)
 because single-node state changes should be fast and so that clients
 can have more coverage across all partitions.  The
 LowestWeightPartitionMoveForNode() implementation does this now.
@@ -167,7 +167,7 @@ type PartitionMove struct {
 
 	Node string
 
-	// Ex: "master", "replica".
+	// Ex: "primary", "replica".
 	State string
 
 	// Same as NodeStateOp.Op: "add", "del", "promote", "demote".

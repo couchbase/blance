@@ -15,19 +15,19 @@ func TestFlattenNodesByState(t *testing.T) {
 	}{
 		{map[string][]string{},
 			[]string{}},
-		{map[string][]string{"master": {}},
+		{map[string][]string{"primary": {}},
 			[]string{}},
-		{map[string][]string{"master": {"a"}},
+		{map[string][]string{"primary": {"a"}},
 			[]string{"a"}},
-		{map[string][]string{"master": {"a", "b"}},
+		{map[string][]string{"primary": {"a", "b"}},
 			[]string{"a", "b"}},
 		{map[string][]string{
-			"master": {"a", "b"},
-			"slave":  {"c"},
+			"primary": {"a", "b"},
+			"replica": {"c"},
 		}, []string{"a", "b", "c"}},
 		{map[string][]string{
-			"master": {"a", "b"},
-			"slave":  {},
+			"primary": {"a", "b"},
+			"replica": {},
 		}, []string{"a", "b"}},
 	}
 	for i, c := range tests {
@@ -45,53 +45,53 @@ func TestRemoveNodesFromNodesByState(t *testing.T) {
 		removeNodes  []string
 		exp          map[string][]string
 	}{
-		{map[string][]string{"master": {"a", "b"}},
+		{map[string][]string{"primary": {"a", "b"}},
 			[]string{"a", "b"},
-			map[string][]string{"master": {}},
+			map[string][]string{"primary": {}},
 		},
-		{map[string][]string{"master": {"a", "b"}},
+		{map[string][]string{"primary": {"a", "b"}},
 			[]string{"b", "c"},
-			map[string][]string{"master": {"a"}},
+			map[string][]string{"primary": {"a"}},
 		},
-		{map[string][]string{"master": {"a", "b"}},
+		{map[string][]string{"primary": {"a", "b"}},
 			[]string{"a", "c"},
-			map[string][]string{"master": {"b"}},
+			map[string][]string{"primary": {"b"}},
 		},
-		{map[string][]string{"master": {"a", "b"}},
+		{map[string][]string{"primary": {"a", "b"}},
 			[]string{},
-			map[string][]string{"master": {"a", "b"}},
+			map[string][]string{"primary": {"a", "b"}},
 		},
 		{
 			map[string][]string{
-				"master": {"a", "b"},
-				"slave":  {"c"},
+				"primary": {"a", "b"},
+				"replica": {"c"},
 			},
 			[]string{},
 			map[string][]string{
-				"master": {"a", "b"},
-				"slave":  {"c"},
+				"primary": {"a", "b"},
+				"replica": {"c"},
 			},
 		},
 		{
 			map[string][]string{
-				"master": {"a", "b"},
-				"slave":  {"c"},
+				"primary": {"a", "b"},
+				"replica": {"c"},
 			},
 			[]string{"a"},
 			map[string][]string{
-				"master": {"b"},
-				"slave":  {"c"},
+				"primary": {"b"},
+				"replica": {"c"},
 			},
 		},
 		{
 			map[string][]string{
-				"master": {"a", "b"},
-				"slave":  {"c"},
+				"primary": {"a", "b"},
+				"replica": {"c"},
 			},
 			[]string{"a", "c"},
 			map[string][]string{
-				"master": {"b"},
-				"slave":  {},
+				"primary": {"b"},
+				"replica": {},
 			},
 		},
 	}
@@ -113,51 +113,51 @@ func TestStateNameSorter(t *testing.T) {
 	}{
 		{
 			PartitionModel{
-				"master": &PartitionModelState{Priority: 0},
-				"slave":  &PartitionModelState{Priority: 1},
+				"primary": &PartitionModelState{Priority: 0},
+				"replica": &PartitionModelState{Priority: 1},
 			},
 			[]string{},
 			[]string{},
 		},
 		{
 			PartitionModel{
-				"master": &PartitionModelState{Priority: 0},
-				"slave":  &PartitionModelState{Priority: 1},
+				"primary": &PartitionModelState{Priority: 0},
+				"replica": &PartitionModelState{Priority: 1},
 			},
-			[]string{"master", "slave"},
-			[]string{"master", "slave"},
+			[]string{"primary", "replica"},
+			[]string{"primary", "replica"},
 		},
 		{
 			PartitionModel{
-				"master": &PartitionModelState{Priority: 0},
-				"slave":  &PartitionModelState{Priority: 1},
+				"primary": &PartitionModelState{Priority: 0},
+				"replica": &PartitionModelState{Priority: 1},
 			},
-			[]string{"slave", "master"},
-			[]string{"master", "slave"},
+			[]string{"replica", "primary"},
+			[]string{"primary", "replica"},
 		},
 		{
 			PartitionModel{
-				"master": &PartitionModelState{Priority: 0},
-				"slave":  &PartitionModelState{Priority: 1},
+				"primary": &PartitionModelState{Priority: 0},
+				"replica": &PartitionModelState{Priority: 1},
 			},
 			[]string{"a", "b"},
 			[]string{"a", "b"},
 		},
 		{
 			PartitionModel{
-				"master": &PartitionModelState{Priority: 0},
-				"slave":  &PartitionModelState{Priority: 1},
+				"primary": &PartitionModelState{Priority: 0},
+				"replica": &PartitionModelState{Priority: 1},
 			},
-			[]string{"a", "master"},
-			[]string{"a", "master"},
+			[]string{"a", "primary"},
+			[]string{"a", "primary"},
 		},
 		{
 			PartitionModel{
-				"master": &PartitionModelState{Priority: 0},
-				"slave":  &PartitionModelState{Priority: 1},
+				"primary": &PartitionModelState{Priority: 0},
+				"replica": &PartitionModelState{Priority: 1},
 			},
-			[]string{"master", "a"},
-			[]string{"a", "master"},
+			[]string{"primary", "a"},
+			[]string{"a", "primary"},
 		},
 	}
 	for i, c := range tests {
@@ -178,21 +178,21 @@ func TestCountStateNodes(t *testing.T) {
 		{
 			PartitionMap{
 				"0": &Partition{NodesByState: map[string][]string{
-					"master": {"a"},
-					"slave":  {"b", "c"},
+					"primary": {"a"},
+					"replica": {"b", "c"},
 				}},
 				"1": &Partition{NodesByState: map[string][]string{
-					"master": {"b"},
-					"slave":  {"c"},
+					"primary": {"b"},
+					"replica": {"c"},
 				}},
 			},
 			nil,
 			map[string]map[string]int{
-				"master": {
+				"primary": {
 					"a": 1,
 					"b": 1,
 				},
-				"slave": {
+				"replica": {
 					"b": 1,
 					"c": 2,
 				},
@@ -201,19 +201,19 @@ func TestCountStateNodes(t *testing.T) {
 		{
 			PartitionMap{
 				"0": &Partition{NodesByState: map[string][]string{
-					"slave": {"b", "c"},
+					"replica": {"b", "c"},
 				}},
 				"1": &Partition{NodesByState: map[string][]string{
-					"master": {"b"},
-					"slave":  {"c"},
+					"primary": {"b"},
+					"replica": {"c"},
 				}},
 			},
 			nil,
 			map[string]map[string]int{
-				"master": {
+				"primary": {
 					"b": 1,
 				},
-				"slave": {
+				"replica": {
 					"b": 1,
 					"c": 2,
 				},
@@ -239,15 +239,15 @@ func TestPartitionMapToArrayCopy(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"b", "c"},
+						"primary": {"a"},
+						"replica": {"b", "c"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"c"},
+						"primary": {"b"},
+						"replica": {"c"},
 					},
 				},
 			},
@@ -255,15 +255,15 @@ func TestPartitionMapToArrayCopy(t *testing.T) {
 				{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"b", "c"},
+						"primary": {"a"},
+						"replica": {"b", "c"},
 					},
 				},
 				{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"c"},
+						"primary": {"b"},
+						"replica": {"c"},
 					},
 				},
 			},
@@ -397,7 +397,7 @@ func TestPlanNextMap(t *testing.T) {
 		expNumWarnings        int
 	}{
 		{
-			About: "single node, simple assignment of master",
+			About: "single node, simple assignment of primary",
 			PrevMap: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
@@ -412,10 +412,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{"a"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 0,
 				},
 			},
@@ -427,20 +427,20 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 			},
 			expNumWarnings: 0,
 		},
 		{
-			About: "single node, not enough to assign slaves",
+			About: "single node, not enough to assign replicas",
 			PrevMap: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
@@ -455,10 +455,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{"a"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 1,
 				},
 			},
@@ -470,15 +470,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {},
+						"primary": {"a"},
+						"replica": {},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {},
+						"primary": {"a"},
+						"replica": {},
 					},
 				},
 			},
@@ -491,10 +491,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{"a"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 1,
 				},
 			},
@@ -517,10 +517,10 @@ func TestPlanNextMap(t *testing.T) {
 					NodesByState: map[string][]string{},
 				},
 			},
-			Nodes:         []string{"a"},
-			NodesToRemove: []string{},
-			NodesToAdd:    []string{"a"},
-			Model:         PartitionModel{},
+			Nodes:                 []string{"a"},
+			NodesToRemove:         []string{},
+			NodesToAdd:            []string{"a"},
+			Model:                 PartitionModel{},
 			ModelStateConstraints: nil,
 			PartitionWeights:      nil,
 			StateStickiness:       nil,
@@ -538,7 +538,7 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings: 0,
 		},
 		{
-			About: "2 nodes, enough for clean master & slave",
+			About: "2 nodes, enough for clean primary & replica",
 			PrevMap: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
@@ -553,10 +553,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{"a", "b"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 1,
 				},
 			},
@@ -568,15 +568,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"b"},
+						"primary": {"a"},
+						"replica": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"a"},
+						"primary": {"b"},
+						"replica": {"a"},
 					},
 				},
 			},
@@ -588,15 +588,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"b"},
+						"primary": {"a"},
+						"replica": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"a"},
+						"primary": {"b"},
+						"replica": {"a"},
 					},
 				},
 			},
@@ -604,10 +604,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{"b"},
 			NodesToAdd:    []string{},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 1,
 				},
 			},
@@ -619,15 +619,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {},
+						"primary": {"a"},
+						"replica": {},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {},
+						"primary": {"a"},
+						"replica": {},
 					},
 				},
 			},
@@ -639,15 +639,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"b"},
+						"primary": {"a"},
+						"replica": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"a"},
+						"primary": {"b"},
+						"replica": {"a"},
 					},
 				},
 			},
@@ -655,10 +655,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{"b", "a"},
 			NodesToAdd:    []string{},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 1,
 				},
 			},
@@ -670,15 +670,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {},
-						"slave":  {},
+						"primary": {},
+						"replica": {},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {},
-						"slave":  {},
+						"primary": {},
+						"replica": {},
 					},
 				},
 			},
@@ -690,15 +690,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"b"},
+						"primary": {"a"},
+						"replica": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"a"},
+						"primary": {"b"},
+						"replica": {"a"},
 					},
 				},
 			},
@@ -706,10 +706,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{"c", "b", "a"},
 			NodesToAdd:    []string{},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 1,
 				},
 			},
@@ -721,15 +721,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {},
-						"slave":  {},
+						"primary": {},
+						"replica": {},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {},
-						"slave":  {},
+						"primary": {},
+						"replica": {},
 					},
 				},
 			},
@@ -741,15 +741,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"b"},
+						"primary": {"a"},
+						"replica": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"a"},
+						"primary": {"b"},
+						"replica": {"a"},
 					},
 				},
 			},
@@ -757,10 +757,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 1,
 				},
 			},
@@ -772,15 +772,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"b"},
+						"primary": {"a"},
+						"replica": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"a"},
+						"primary": {"b"},
+						"replica": {"a"},
 					},
 				},
 			},
@@ -792,15 +792,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"b"},
+						"primary": {"a"},
+						"replica": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"a"},
+						"primary": {"b"},
+						"replica": {"a"},
 					},
 				},
 			},
@@ -808,10 +808,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{"a"},
 			NodesToAdd:    []string{"c"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 1,
 				},
 			},
@@ -823,15 +823,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"c"},
-						"slave":  {"b"},
+						"primary": {"c"},
+						"replica": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"c"},
+						"primary": {"b"},
+						"replica": {"c"},
 					},
 				},
 			},
@@ -843,15 +843,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"b"},
+						"primary": {"a"},
+						"replica": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"a"},
+						"primary": {"b"},
+						"replica": {"a"},
 					},
 				},
 			},
@@ -859,10 +859,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{"b"},
 			NodesToAdd:    []string{"c"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 1,
 				},
 			},
@@ -874,15 +874,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"c"},
+						"primary": {"a"},
+						"replica": {"c"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"c"},
-						"slave":  {"a"},
+						"primary": {"c"},
+						"replica": {"a"},
 					},
 				},
 			},
@@ -894,15 +894,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"b"},
+						"primary": {"a"},
+						"replica": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"a"},
+						"primary": {"b"},
+						"replica": {"a"},
 					},
 				},
 			},
@@ -910,10 +910,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{"a", "b"},
 			NodesToAdd:    []string{"c", "d"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 1,
 				},
 			},
@@ -925,22 +925,22 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"c"},
-						"slave":  {"d"},
+						"primary": {"c"},
+						"replica": {"d"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"d"},
-						"slave":  {"c"},
+						"primary": {"d"},
+						"replica": {"c"},
 					},
 				},
 			},
 			expNumWarnings: 0,
 		},
 		{
-			About: "add 2 nodes, 2 masters, 1 slave",
+			About: "add 2 nodes, 2 primaries, 1 replica",
 			PrevMap: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
@@ -955,10 +955,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{"a", "b"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 2,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 1,
 				},
 			},
@@ -970,22 +970,22 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a", "b"},
-						"slave":  {},
+						"primary": {"a", "b"},
+						"replica": {},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"a", "b"},
-						"slave":  {},
+						"primary": {"a", "b"},
+						"replica": {},
 					},
 				},
 			},
 			expNumWarnings: 2,
 		},
 		{
-			About: "add 3 nodes, 2 masters, 1 slave",
+			About: "add 3 nodes, 2 primaries, 1 replica",
 			PrevMap: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
@@ -1000,10 +1000,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{"a", "b", "c"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 2,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 1,
 				},
 			},
@@ -1015,15 +1015,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"b", "a"},
-						"slave":  {"c"},
+						"primary": {"b", "a"},
+						"replica": {"c"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"c", "a"},
-						"slave":  {"b"},
+						"primary": {"c", "a"},
+						"replica": {"b"},
 					},
 				},
 			},
@@ -1045,16 +1045,16 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{"a", "b"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 0,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 0,
 				},
 			},
 			ModelStateConstraints: map[string]int{
-				"master": 1,
-				"slave":  1,
+				"primary": 1,
+				"replica": 1,
 			},
 			PartitionWeights: nil,
 			StateStickiness:  nil,
@@ -1063,15 +1063,15 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
-						"slave":  {"b"},
+						"primary": {"a"},
+						"replica": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
-						"slave":  {"a"},
+						"primary": {"b"},
+						"replica": {"a"},
 					},
 				},
 			},
@@ -1101,10 +1101,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{"a", "b"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 0,
 				},
 			},
@@ -1118,25 +1118,25 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 				"2": &Partition{
 					Name: "2",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 				"3": &Partition{
 					Name: "3",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 			},
@@ -1170,10 +1170,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{"a", "b"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 0,
 				},
 			},
@@ -1187,31 +1187,31 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 				"2": &Partition{
 					Name: "2",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 				"3": &Partition{
 					Name: "3",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 				"4": &Partition{
 					Name: "4",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 			},
@@ -1249,10 +1249,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{"a", "b"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 0,
 				},
 			},
@@ -1266,37 +1266,37 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 				"2": &Partition{
 					Name: "2",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 				"3": &Partition{
 					Name: "3",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 				"4": &Partition{
 					Name: "4",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 				"5": &Partition{
 					Name: "5",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 			},
@@ -1334,10 +1334,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{"a", "b"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 0,
 				},
 			},
@@ -1351,37 +1351,37 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 				"2": &Partition{
 					Name: "2",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 				"3": &Partition{
 					Name: "3",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 				"4": &Partition{
 					Name: "4",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 				"5": &Partition{
 					Name: "5",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 			},
@@ -1419,10 +1419,10 @@ func TestPlanNextMap(t *testing.T) {
 			NodesToRemove: []string{},
 			NodesToAdd:    []string{"a", "b"},
 			Model: PartitionModel{
-				"master": &PartitionModelState{
+				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
 				},
-				"slave": &PartitionModelState{
+				"replica": &PartitionModelState{
 					Priority: 1, Constraints: 0,
 				},
 			},
@@ -1436,37 +1436,37 @@ func TestPlanNextMap(t *testing.T) {
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 				"1": &Partition{
 					Name: "1",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 				"2": &Partition{
 					Name: "2",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 				"3": &Partition{
 					Name: "3",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 				"4": &Partition{
 					Name: "4",
 					NodesByState: map[string][]string{
-						"master": {"a"},
+						"primary": {"a"},
 					},
 				},
 				"5": &Partition{
 					Name: "5",
 					NodesByState: map[string][]string{
-						"master": {"b"},
+						"primary": {"b"},
 					},
 				},
 			},
@@ -1545,8 +1545,8 @@ func testVisTestCases(t *testing.T, tests []VisTestCase) {
 		nodeNames[i] = fmt.Sprintf("%c", i+97) // Start at ASCII 'a'.
 	}
 	stateNames := map[string]string{
-		"m": "master",
-		"s": "slave",
+		"m": "primary",
+		"s": "replica",
 	}
 	for i, c := range tests {
 		if c.Ignore {
@@ -1637,25 +1637,25 @@ func testVisTestCases(t *testing.T, tests []VisTestCase) {
 }
 
 func TestPlanNextMapVis(t *testing.T) {
-	partitionModel1Master0Slave := PartitionModel{
-		"master": &PartitionModelState{
+	partitionModel1Primary0Replica := PartitionModel{
+		"primary": &PartitionModelState{
 			Priority: 0, Constraints: 1,
 		},
-		"slave": &PartitionModelState{
+		"replica": &PartitionModelState{
 			Priority: 1, Constraints: 0,
 		},
 	}
-	partitionModel1Master1Slave := PartitionModel{
-		"master": &PartitionModelState{
+	partitionModel1Primary1Replica := PartitionModel{
+		"primary": &PartitionModelState{
 			Priority: 0, Constraints: 1,
 		},
-		"slave": &PartitionModelState{
+		"replica": &PartitionModelState{
 			Priority: 1, Constraints: 1,
 		},
 	}
 	tests := []VisTestCase{
 		{
-			About: "single node, simple assignment of master",
+			About: "single node, simple assignment of primary",
 			FromTo: [][]string{
 				{"", "m"},
 				{"", "m"},
@@ -1663,7 +1663,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"a"},
-			Model:          partitionModel1Master0Slave,
+			Model:          partitionModel1Primary0Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -1675,7 +1675,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"a", "b"},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -1687,7 +1687,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"b"},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -1699,7 +1699,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"b", "c"},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -1711,7 +1711,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -1723,7 +1723,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"c"},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -1737,7 +1737,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"b", "c", "d"},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -1756,18 +1756,18 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"b", "c", "d"},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
-			About: "8 partitions, 4 nodes don't change, 1 slave moved",
+			About: "8 partitions, 4 nodes don't change, 1 replica moved",
 			FromTo: [][]string{
 				//        abcd    abcd
 				{"sm  ", "sm  "},
 				{"  ms", "  ms"},
 				{"s  m", "s  m"},
 				{" ms ", " ms "},
-				{" sm ", "  ms"}, // Slave moved to d for more balanced'ness.
+				{" sm ", "  ms"}, // Replica moved to d for more balanced'ness.
 				{" s m", " s m"},
 				{"ms  ", "ms  "},
 				{"m s ", "m s "},
@@ -1775,7 +1775,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -1796,7 +1796,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -1815,11 +1815,11 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d", "e"},
 			NodesToRemove:  []string{"b"},
 			NodesToAdd:     []string{"e"},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
-			// Masters stayed nicely stable during node removal.
+			// Primaries stayed nicely stable during node removal.
 			// TODO: But, perhaps node a has too much load.
 			About: "4 nodes to 3 nodes, remove node d",
 			FromTo: [][]string{
@@ -1836,15 +1836,15 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{"d"},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
-			// TODO: ISSUE: the slaves aren't cleared when we change
-			// the constraints from 1 slave down to 0 slaves, so
+			// TODO: ISSUE: the replicas aren't cleared when we change
+			// the constraints from 1 replica down to 0 replicas, so
 			// ignore this case for now.
 			Ignore: true,
-			About:  "change constraints from 1 slave to 0 slaves",
+			About:  "change constraints from 1 replica to 0 replicas",
 			FromTo: [][]string{
 				//        abcd    abcd
 				{" m s", " m  "},
@@ -1859,7 +1859,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master0Slave,
+			Model:          partitionModel1Primary0Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -1878,11 +1878,11 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d", "e", "f", "g", "h"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"b", "c", "d", "e", "f", "g", "h"},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
-			About: "8 partitions, 1 to 8 nodes, 0 slaves",
+			About: "8 partitions, 1 to 8 nodes, 0 replicas",
 			FromTo: [][]string{
 				//             abcdefgh
 				{"m", " m      "},
@@ -1897,7 +1897,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d", "e", "f", "g", "h"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"b", "c", "d", "e", "f", "g", "h"},
-			Model:          partitionModel1Master0Slave,
+			Model:          partitionModel1Primary0Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -1917,7 +1917,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			NodesToRemove:    []string{},
 			NodesToAdd:       []string{},
 			PartitionWeights: map[string]int{"000": 100},
-			Model:            partitionModel1Master1Slave,
+			Model:            partitionModel1Primary1Replica,
 			expNumWarnings:   0,
 		},
 		{
@@ -1937,7 +1937,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			NodesToRemove:    []string{},
 			NodesToAdd:       []string{},
 			PartitionWeights: map[string]int{"004": 100},
-			Model:            partitionModel1Master1Slave,
+			Model:            partitionModel1Primary1Replica,
 			expNumWarnings:   0,
 		},
 		{
@@ -1957,11 +1957,11 @@ func TestPlanNextMapVis(t *testing.T) {
 			NodesToRemove:    []string{},
 			NodesToAdd:       []string{},
 			PartitionWeights: map[string]int{"000": 100, "004": 100},
-			Model:            partitionModel1Master1Slave,
+			Model:            partitionModel1Primary1Replica,
 			expNumWarnings:   0,
 		},
 		{
-			// Masters stayed nicely stable during node removal.
+			// Primaries stayed nicely stable during node removal.
 			// TODO: But, perhaps node a has too much load.
 			About: "4 nodes to 3 nodes, remove node d, high stickiness",
 			FromTo: [][]string{
@@ -1978,8 +1978,8 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:           []string{"a", "b", "c", "d"},
 			NodesToRemove:   []string{"d"},
 			NodesToAdd:      []string{},
-			Model:           partitionModel1Master1Slave,
-			StateStickiness: map[string]int{"master": 1000000},
+			Model:           partitionModel1Primary1Replica,
+			StateStickiness: map[string]int{"primary": 1000000},
 			expNumWarnings:  0,
 		},
 		{
@@ -1993,7 +1993,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -2007,7 +2007,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -2027,7 +2027,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -2047,13 +2047,13 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
 			About: "8 partitions, 2 nodes add 1 node, interleaved m's",
 			// ISSUE: not enough partitions moved: c has less than a &
-			// b, especially slaves; but it has some 2nd order
+			// b, especially replicas; but it has some 2nd order
 			// balance'd-ness.
 			FromTo: [][]string{
 				//        ab    abc
@@ -2069,13 +2069,13 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 		{
 			About: "8 partitions, 2 nodes add 1 node, interleaved s'm",
 			// ISSUE: not enough partitions moved: c has less than a &
-			// b, especially slaves; but it has some 2nd order
+			// b, especially replicas; but it has some 2nd order
 			// balance'd-ness.
 			FromTo: [][]string{
 				//        ab    abc
@@ -2091,7 +2091,7 @@ func TestPlanNextMapVis(t *testing.T) {
 			Nodes:          []string{"a", "b", "c"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			expNumWarnings: 0,
 		},
 	}
@@ -2099,11 +2099,11 @@ func TestPlanNextMapVis(t *testing.T) {
 }
 
 func TestPlanNextMapHierarchy(t *testing.T) {
-	partitionModel1Master1Slave := PartitionModel{
-		"master": &PartitionModelState{
+	partitionModel1Primary1Replica := PartitionModel{
+		"primary": &PartitionModelState{
 			Priority: 0, Constraints: 1,
 		},
-		"slave": &PartitionModelState{
+		"replica": &PartitionModelState{
 			Priority: 1, Constraints: 1,
 		},
 	}
@@ -2119,7 +2119,7 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 		"r1": "z0",
 	}
 	hierarchyRulesWantSameRack := HierarchyRules{
-		"slave": []*HierarchyRule{
+		"replica": []*HierarchyRule{
 			{
 				IncludeLevel: 1,
 				ExcludeLevel: 0,
@@ -2127,7 +2127,7 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 		},
 	}
 	hierarchyRulesWantOtherRack := HierarchyRules{
-		"slave": []*HierarchyRule{
+		"replica": []*HierarchyRule{
 			{
 				IncludeLevel: 2,
 				ExcludeLevel: 1,
@@ -2151,13 +2151,13 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"a", "b", "c", "d"},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			NodeHierarchy:  nodeHierarchy2Rack,
 			HierarchyRules: nil,
 			expNumWarnings: 0,
 		},
 		{
-			About: "2 racks, favor same rack for slave",
+			About: "2 racks, favor same rack for replica",
 			FromTo: [][]string{
 				//            abcd
 				{"", "ms  "},
@@ -2172,13 +2172,13 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"a", "b", "c", "d"},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			NodeHierarchy:  nodeHierarchy2Rack,
 			HierarchyRules: hierarchyRulesWantSameRack,
 			expNumWarnings: 0,
 		},
 		{
-			About: "2 racks, favor other rack for slave",
+			About: "2 racks, favor other rack for replica",
 			FromTo: [][]string{
 				//            abcd
 				{"", "m s "},
@@ -2193,7 +2193,7 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"a", "b", "c", "d"},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			NodeHierarchy:  nodeHierarchy2Rack,
 			HierarchyRules: hierarchyRulesWantOtherRack,
 			expNumWarnings: 0,
@@ -2214,13 +2214,13 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d", "e"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"e"},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			NodeHierarchy:  nodeHierarchy2Rack,
 			HierarchyRules: hierarchyRulesWantOtherRack,
 			expNumWarnings: 0,
 		},
 		{
-			// NOTE: following the hierarchy rules for slaves, node a
+			// NOTE: following the hierarchy rules for replicas, node a
 			// takes on undue burden after removing node b,
 			About: "2 racks, remove 1 node from rack 1",
 			FromTo: [][]string{
@@ -2237,7 +2237,7 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{"b"},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master1Slave,
+			Model:          partitionModel1Primary1Replica,
 			NodeHierarchy:  nodeHierarchy2Rack,
 			HierarchyRules: hierarchyRulesWantOtherRack,
 			expNumWarnings: 0,
@@ -2246,9 +2246,9 @@ func TestPlanNextMapHierarchy(t *testing.T) {
 	testVisTestCases(t, tests)
 }
 
-func TestMultiMaster(t *testing.T) {
-	partitionModel2Master0Slave := PartitionModel{
-		"master": &PartitionModelState{
+func TestMultiPrimary(t *testing.T) {
+	partitionModel2Primary0Replica := PartitionModel{
+		"primary": &PartitionModelState{
 			Priority: 0, Constraints: 2,
 		},
 	}
@@ -2269,7 +2269,7 @@ func TestMultiMaster(t *testing.T) {
 			Nodes:          []string{"a"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"a"},
-			Model:          partitionModel2Master0Slave,
+			Model:          partitionModel2Primary0Replica,
 			expNumWarnings: 8,
 		},
 		{
@@ -2289,7 +2289,7 @@ func TestMultiMaster(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"a", "b", "c", "d"},
-			Model:          partitionModel2Master0Slave,
+			Model:          partitionModel2Primary0Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -2308,7 +2308,7 @@ func TestMultiMaster(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"a", "b", "c", "d"},
-			Model:          partitionModel2Master0Slave,
+			Model:          partitionModel2Primary0Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -2331,7 +2331,7 @@ func TestMultiMaster(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{"a"},
 			NodesToAdd:     []string{},
-			Model:          partitionModel2Master0Slave,
+			Model:          partitionModel2Primary0Replica,
 			expNumWarnings: 0,
 		},
 		{
@@ -2354,25 +2354,25 @@ func TestMultiMaster(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{"a", "c"},
 			NodesToAdd:     []string{},
-			Model:          partitionModel2Master0Slave,
+			Model:          partitionModel2Primary0Replica,
 			expNumWarnings: 0,
 		},
 	}
 	testVisTestCases(t, tests)
 }
 
-func Test2Slaves(t *testing.T) {
-	partitionModel1Master2Slave := PartitionModel{
-		"master": &PartitionModelState{
+func Test2Replicas(t *testing.T) {
+	partitionModel1Primary2Replica := PartitionModel{
+		"primary": &PartitionModelState{
 			Priority: 0, Constraints: 1,
 		},
-		"slave": &PartitionModelState{
+		"replica": &PartitionModelState{
 			Priority: 1, Constraints: 2,
 		},
 	}
 	tests := []VisTestCase{
 		{
-			About: "8 partitions, 1 master, 2 slaves, from 0 to 4 nodes",
+			About: "8 partitions, 1 primary, 2 replicas, from 0 to 4 nodes",
 			FromTo: [][]string{
 				//            a b c d
 				{"", "m0s0s1  "},
@@ -2388,17 +2388,17 @@ func Test2Slaves(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"a", "b", "c", "d"},
-			Model:          partitionModel1Master2Slave,
+			Model:          partitionModel1Primary2Replica,
 			expNumWarnings: 0,
 		},
 		{
-			About: "8 partitions, reconverge 1 master, 2 slaves, from 4 to 4 nodes",
+			About: "8 partitions, reconverge 1 primary, 2 replicas, from 4 to 4 nodes",
 			FromTo: [][]string{
 				//        a b c d     a b c d
 				{"m0s0s1  ", "m0s0s1  "},
 				{"s0m0  s1", "s0m0  s1"},
 				{"s0s1m0  ", "s0s1m0  "},
-				{"s1  s0m0", "s0  s1m0"}, // Flipped slaves reconverges.
+				{"s1  s0m0", "s0  s1m0"}, // Flipped replicas reconverges.
 				{"m0s1  s0", "m0s1  s0"},
 				{"  m0s0s1", "  m0s0s1"},
 				{"s1  m0s0", "s1  m0s0"},
@@ -2408,11 +2408,11 @@ func Test2Slaves(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master2Slave,
+			Model:          partitionModel1Primary2Replica,
 			expNumWarnings: 0,
 		},
 		{ // Try case where number of nodes isn't a factor of # partitions.
-			About: "7 partitions, 1 master, 2 slaves, from 0 to 4 nodes",
+			About: "7 partitions, 1 primary, 2 replicas, from 0 to 4 nodes",
 			FromTo: [][]string{
 				//            a b c d
 				{"", "m0s0  s1"},
@@ -2427,11 +2427,11 @@ func Test2Slaves(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"a", "b", "c", "d"},
-			Model:          partitionModel1Master2Slave,
+			Model:          partitionModel1Primary2Replica,
 			expNumWarnings: 0,
 		},
 		{
-			About: "7 partitions, reconverge 1 master, 2 slaves, from 4 to 4 nodes",
+			About: "7 partitions, reconverge 1 primary, 2 replicas, from 4 to 4 nodes",
 			FromTo: [][]string{
 				//        a b c d     a b c d
 				{"m0s0  s1", "m0s0  s1"},
@@ -2446,11 +2446,11 @@ func Test2Slaves(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master2Slave,
+			Model:          partitionModel1Primary2Replica,
 			expNumWarnings: 0,
 		},
 		{
-			About: "16 partitions, 1 master, 2 slaves, from 0 to 4 nodes",
+			About: "16 partitions, 1 primary, 2 replicas, from 0 to 4 nodes",
 			FromTo: [][]string{
 				//            a b c d
 				{"", "m0s0s1  "},
@@ -2474,11 +2474,11 @@ func Test2Slaves(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{"a", "b", "c", "d"},
-			Model:          partitionModel1Master2Slave,
+			Model:          partitionModel1Primary2Replica,
 			expNumWarnings: 0,
 		},
 		{
-			About: "re-feed 16 partitions, 1 master, 2 slaves, from 4 to 4 nodes",
+			About: "re-feed 16 partitions, 1 primary, 2 replicas, from 4 to 4 nodes",
 			FromTo: [][]string{
 				//        a b c d     a b c d
 				{"m0s0s1  ", "m0s0s1  "},
@@ -2502,7 +2502,7 @@ func Test2Slaves(t *testing.T) {
 			Nodes:          []string{"a", "b", "c", "d"},
 			NodesToRemove:  []string{},
 			NodesToAdd:     []string{},
-			Model:          partitionModel1Master2Slave,
+			Model:          partitionModel1Primary2Replica,
 			expNumWarnings: 0,
 		},
 	}

@@ -16,110 +16,110 @@ func TestFindStateChanges(t *testing.T) {
 		endNodesByState map[string][]string
 		expected        []string
 	}{
-		{0, 0, "master",
-			[]string{"master", "replica"},
+		{0, 0, "primary",
+			[]string{"primary", "replica"},
 			map[string][]string{
-				"master":  {"a"},
+				"primary": {"a"},
 				"replica": {"b", "c"},
 			},
 			map[string][]string{
-				"master":  {"a"},
-				"replica": {"b", "c"},
-			},
-			nil,
-		},
-		{1, 2, "master",
-			[]string{"master", "replica"},
-			map[string][]string{
-				"master":  {"a"},
-				"replica": {"b", "c"},
-			},
-			map[string][]string{
-				"master":  {"a"},
+				"primary": {"a"},
 				"replica": {"b", "c"},
 			},
 			nil,
 		},
-		{0, 0, "master",
-			[]string{"master", "replica"},
+		{1, 2, "primary",
+			[]string{"primary", "replica"},
 			map[string][]string{
-				"master":  {},
+				"primary": {"a"},
+				"replica": {"b", "c"},
+			},
+			map[string][]string{
+				"primary": {"a"},
+				"replica": {"b", "c"},
+			},
+			nil,
+		},
+		{0, 0, "primary",
+			[]string{"primary", "replica"},
+			map[string][]string{
+				"primary": {},
 				"replica": {"a"},
 			},
 			map[string][]string{
-				"master":  {"a"},
+				"primary": {"a"},
 				"replica": {},
 			},
 			nil,
 		},
-		{1, 2, "master",
-			[]string{"master", "replica"},
+		{1, 2, "primary",
+			[]string{"primary", "replica"},
 			map[string][]string{
-				"master":  {},
+				"primary": {},
 				"replica": {"a"},
 			},
 			map[string][]string{
-				"master":  {"a"},
+				"primary": {"a"},
 				"replica": {},
 			},
 			[]string{"a"},
 		},
 		{0, 1, "replica",
-			[]string{"master", "replica"},
+			[]string{"primary", "replica"},
 			map[string][]string{
-				"master":  {"a"},
+				"primary": {"a"},
 				"replica": {},
 			},
 			map[string][]string{
-				"master":  {},
+				"primary": {},
 				"replica": {"a"},
 			},
 			[]string{"a"},
 		},
 		{1, 2, "replica",
-			[]string{"master", "replica"},
+			[]string{"primary", "replica"},
 			map[string][]string{
-				"master":  {"a"},
+				"primary": {"a"},
 				"replica": {},
 			},
 			map[string][]string{
-				"master":  {},
+				"primary": {},
 				"replica": {"a"},
 			},
 			nil,
 		},
 		{1, 2, "replica",
-			[]string{"master", "replica"},
+			[]string{"primary", "replica"},
 			map[string][]string{
-				"master":  {},
+				"primary": {},
 				"replica": {"a"},
 			},
 			map[string][]string{
-				"master":  {},
+				"primary": {},
 				"replica": {},
 			},
 			nil,
 		},
-		{1, 2, "master",
-			[]string{"master", "replica"},
+		{1, 2, "primary",
+			[]string{"primary", "replica"},
 			map[string][]string{
-				"master":  {"a"},
+				"primary": {"a"},
 				"replica": {"b", "c", "d"},
 			},
 			map[string][]string{
-				"master":  {"b"},
+				"primary": {"b"},
 				"replica": {"a", "c", "d"},
 			},
 			[]string{"b"},
 		},
-		{1, 2, "master",
-			[]string{"master", "replica"},
+		{1, 2, "primary",
+			[]string{"primary", "replica"},
 			map[string][]string{
-				"master":  {"a"},
+				"primary": {"a"},
 				"replica": {"b", "c", "d"},
 			},
 			map[string][]string{
-				"master":  {"x"},
+				"primary": {"x"},
 				"replica": {"a", "c", "d"},
 			},
 			nil,
@@ -139,7 +139,7 @@ func TestFindStateChanges(t *testing.T) {
 }
 
 func TestCalcPartitionMoves(t *testing.T) {
-	states := []string{"master", "replica"}
+	states := []string{"primary", "replica"}
 
 	tests := []struct {
 		before string
@@ -148,7 +148,7 @@ func TestCalcPartitionMoves(t *testing.T) {
 
 		favorMinNodes bool
 	}{
-		//  master | replica
+		//  primary | replica
 		//  -------|--------
 		{ // Test #0.
 			" a",
@@ -476,7 +476,7 @@ func TestCalcPartitionMoves(t *testing.T) {
 }
 
 // Converts an input line string like " a b | +c -d", with input
-// states of ["master", "replica"] to something like {"master": ["a",
+// states of ["primary", "replica"] to something like {"primary": ["a",
 // "b"], "replica": ["+c", "-d"]}.
 func convertLineToNodesByState(
 	line string, states []string) map[string][]string {
