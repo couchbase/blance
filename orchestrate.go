@@ -90,8 +90,8 @@ type Orchestrator struct {
 	begMap PartitionMap // The map state that we start with.
 	endMap PartitionMap // The map state we want to end up with.
 
-	assignPartition AssignPartitionFunc
-	findMove        FindMoveFunc
+	assignPartitions AssignPartitionsFunc
+	findMove         FindMoveFunc
 
 	progressCh chan OrchestratorProgress
 
@@ -143,16 +143,16 @@ type OrchestratorProgress struct {
 	TotProgressClose             int
 }
 
-// AssignPartitionFunc is a callback invoked by OrchestrateMoves()
-// when it wants to synchronously assign a partition to a node at a
-// given state, or change the state of an existing partition on a
-// node.  The state will be "" if the partition should be removed or
+// AssignPartitionsFunc is a callback invoked by OrchestrateMoves()
+// when it wants to synchronously assign one more more partitions to
+// a node at a given state, or change the state of an existing partition
+// on a node. The state will be "" if the partition should be removed or
 // deleted from the node.
-type AssignPartitionFunc func(stopCh chan struct{},
-	partition string,
+type AssignPartitionsFunc func(stopCh chan struct{},
 	node string,
-	state string,
-	op string) error
+	partitions []string,
+	states []string,
+	ops []string) error
 
 // FindMoveFunc is a callback invoked by OrchestrateMoves() when it
 // wants to find the best partition move out of a set of available
@@ -218,10 +218,10 @@ type NextMoves struct {
 
 // ------------------------------------------
 
-// A partitionMoveReq wraps a partitionMove, allowing the receiver (a
-// mover) to signal that the move is completed by closing the doneCh.
+// A partitionMoveReq wraps one or many partitionMoves, allowing the receiver (a
+// mover) to signal that the move request is completed by closing the doneCh.
 type partitionMoveReq struct {
-	partitionMove PartitionMove
+	partitionMove []PartitionMove
 	doneCh        chan error
 }
 
@@ -246,11 +246,15 @@ func OrchestrateMoves(
 	nodesAll []string,
 	begMap PartitionMap,
 	endMap PartitionMap,
-	assignPartition AssignPartitionFunc,
-	findMove FindMoveFunc,
-) (*Orchestrator, error) {
+	assignPartitions AssignPartitionsFunc,
+	findMove FindMoveFunc) (*Orchestrator, error) {
 	if len(begMap) != len(endMap) {
 		return nil, fmt.Errorf("mismatched begMap and endMap")
+	}
+
+	if assignPartitions == nil {
+		return nil, fmt.Errorf("callback implementation for " +
+			"AssignPartitionsFunc is expected")
 	}
 
 	// Populate the mapNodeToPartitionMoveReqCh, keyed by node name.
@@ -286,14 +290,14 @@ func OrchestrateMoves(
 	}
 
 	o := &Orchestrator{
-		model:           model,
-		options:         options,
-		nodesAll:        nodesAll,
-		begMap:          begMap,
-		endMap:          endMap,
-		assignPartition: assignPartition,
-		findMove:        findMove,
-		progressCh:      make(chan OrchestratorProgress),
+		model:            model,
+		options:          options,
+		nodesAll:         nodesAll,
+		begMap:           begMap,
+		endMap:           endMap,
+		assignPartitions: assignPartitions,
+		findMove:         findMove,
+		progressCh:       make(chan OrchestratorProgress),
 
 		mapNodeToPartitionMoveReqCh: mapNodeToPartitionMoveReqCh,
 
@@ -307,21 +311,16 @@ func OrchestrateMoves(
 
 	runMoverDoneCh := make(chan error)
 
-	// Start concurrent movers.
+	// Start a concurrent mover per node.
 	//
 	// Following the airplane analogy, a runMover() represents
-	// a takeoff runway at a city airport (or node).  There can
-	// be multiple takeoff runways at a city's airport (which is
-	// controlled by MaxConcurrentPartitionMovesPerNode).
-	m := options.MaxConcurrentPartitionMovesPerNode
-	if m < 1 {
-		m = 1
-	}
-
+	// a takeoff runway at a city airport (or node).
+	// A single runMover is capable of dispatching multiple
+	// partition move requests in a batch.
+	// All the partitions in a batch steps together through the
+	// various stages of movement like replica add, primary promote etc.
 	for _, node := range o.nodesAll {
-		for i := 0; i < m; i++ {
-			go o.runMover(stopCh, runMoverDoneCh, node)
-		}
+		go o.runMover(stopCh, runMoverDoneCh, node)
 	}
 
 	// Supply moves to movers.
@@ -336,7 +335,7 @@ func OrchestrateMoves(
 	// city's airport (or node), this global, supreme airport
 	// controller chooses which plane (or partition) gets to takeoff
 	// next.
-	go o.runSupplyMoves(stopCh, m, runMoverDoneCh)
+	go o.runSupplyMoves(stopCh, runMoverDoneCh)
 
 	return o, nil
 }
@@ -406,9 +405,9 @@ func (o *Orchestrator) VisitNextMoves(cb func(map[string]*NextMoves)) {
 
 // runMover handles partition moves for a single node.
 //
-// There may be >1 runMover's for a single node for higher
-// concurrency, just as a city airport might have more than one
-// takeoff runway.
+// There will only be a single runMover for a node which is
+// capable of handling multiple partition movements for higher
+// concurrency.
 func (o *Orchestrator) runMover(
 	stopCh chan struct{}, runMoverDoneCh chan error, node string) {
 	o.updateProgress(func() {
@@ -443,16 +442,21 @@ func (o *Orchestrator) moverLoop(stopCh chan struct{},
 				return nil
 			}
 
+			// batch all the partition moves requested.
+			var partitions, states, ops []string
 			partitionMove := partitionMoveReqVal.partitionMove
-			partition := partitionMove.Partition
-			state := partitionMove.State
+			for _, pm := range partitionMove {
+				partitions = append(partitions, pm.Partition)
+				states = append(states, pm.State)
+				ops = append(ops, pm.Op)
+			}
 
 			o.updateProgress(func() {
 				o.progress.TotMoverAssignPartition++
 			})
 
-			err := o.assignPartition(stopCh,
-				partition, node, state, partitionMove.Op)
+			err := o.assignPartitions(stopCh, node, partitions,
+				states, ops)
 
 			o.updateProgress(func() {
 				if err != nil {
@@ -478,11 +482,35 @@ func (o *Orchestrator) moverLoop(stopCh chan struct{},
 	}
 }
 
+func (o *Orchestrator) filterNextPlausibleMovesForNode(node string,
+	nextMovesArr []*NextMoves) (nxtMoves []*NextMoves) {
+	count := o.options.MaxConcurrentPartitionMovesPerNode
+	if count <= 0 {
+		count = 1
+	}
+	if count > len(nextMovesArr) {
+		count = len(nextMovesArr)
+	}
+
+	// pick sufficient number of the best possible moves per node.
+	for count > 0 {
+		i := o.findNextMoves(node, nextMovesArr)
+		nxtMoves = append(nxtMoves, nextMovesArr[i])
+
+		count--
+		nextMovesArr[i] = nextMovesArr[len(nextMovesArr)-1]
+		nextMovesArr[len(nextMovesArr)-1] = nil
+		nextMovesArr = nextMovesArr[:len(nextMovesArr)-1]
+	}
+
+	return nxtMoves
+}
+
 // runSupplyMoves "broadcasts" available partitionMoveReq's to movers.
 // The broadcast is implemented via repeated "rounds" of spawning off
 // concurrent helper goroutines of runSupplyMove()'s for each node.
 func (o *Orchestrator) runSupplyMoves(stopCh chan struct{},
-	m int, runMoverDoneCh chan error) {
+	runMoverDoneCh chan error) {
 	var errOuter error
 
 	for errOuter == nil {
@@ -523,8 +551,10 @@ func (o *Orchestrator) runSupplyMoves(stopCh chan struct{},
 		broadcastDoneCh := make(chan error)
 
 		for node, nextMovesArr := range availableMoves {
+			nxtMoves := o.filterNextPlausibleMovesForNode(node, nextMovesArr)
+
 			go o.runSupplyMove(stopCh, node,
-				o.findNextMoves(node, nextMovesArr),
+				nxtMoves,
 				broadcastStopCh, broadcastDoneCh)
 		}
 
@@ -581,7 +611,7 @@ func (o *Orchestrator) runSupplyMoves(stopCh chan struct{},
 	})
 
 	// Wait for movers to finish.
-	o.waitForAllMoversDone(m, runMoverDoneCh)
+	o.waitForAllMoversDone(1, runMoverDoneCh)
 
 	o.updateProgress(func() {
 		o.progress.TotProgressClose++
@@ -593,26 +623,40 @@ func (o *Orchestrator) runSupplyMoves(stopCh chan struct{},
 // runSupplyMove tries to send a single partitionMoveReq to a single
 // node, along with handling the broadcast interruptions.
 func (o *Orchestrator) runSupplyMove(stopCh chan struct{},
-	node string, nextMoves *NextMoves,
+	node string, nextMoves []*NextMoves,
 	broadcastStopCh chan struct{},
 	broadcastDoneCh chan error) {
+	var nextDoneCh chan error
+	// check whether any of the nextMoves entry is already in flight,
+	// If so, then wait for that movement to complete before
+	// submitting any subsequent partition movement requests.
 	o.m.Lock()
-	nodeStateOp := nextMoves.Moves[nextMoves.Next]
-	nextDoneCh := nextMoves.nextDoneCh
+	for _, nm := range nextMoves {
+		if nm.nextDoneCh != nil {
+			nextDoneCh = nm.nextDoneCh
+			break
+		}
+	}
 	o.m.Unlock()
 
 	if nextDoneCh == nil {
 		nextDoneCh = make(chan error)
 
 		pmr := partitionMoveReq{
-			partitionMove: PartitionMove{
-				Partition: nextMoves.Partition,
-				Node:      nodeStateOp.Node,
-				State:     nodeStateOp.State,
-				Op:        nodeStateOp.Op,
-			},
-			doneCh: nextDoneCh,
+			partitionMove: make([]PartitionMove, 0, len(nextMoves)),
+			doneCh:        nextDoneCh,
 		}
+
+		o.m.Lock()
+		for _, nm := range nextMoves {
+			pmr.partitionMove = append(pmr.partitionMove, PartitionMove{
+				Partition: nm.Partition,
+				Node:      nm.Moves[nm.Next].Node,
+				State:     nm.Moves[nm.Next].State,
+				Op:        nm.Moves[nm.Next].Op,
+			})
+		}
+		o.m.Unlock()
 
 		select {
 		case <-stopCh:
@@ -625,7 +669,9 @@ func (o *Orchestrator) runSupplyMove(stopCh chan struct{},
 
 		case o.mapNodeToPartitionMoveReqCh[node] <- pmr:
 			o.m.Lock()
-			nextMoves.nextDoneCh = nextDoneCh
+			for i := range nextMoves {
+				nextMoves[i].nextDoneCh = nextDoneCh
+			}
 			o.m.Unlock()
 		}
 	}
@@ -639,8 +685,13 @@ func (o *Orchestrator) runSupplyMove(stopCh chan struct{},
 
 	case err := <-nextDoneCh:
 		o.m.Lock()
-		nextMoves.nextDoneCh = nil
-		nextMoves.Next++
+		for i := range nextMoves {
+			// check the inflight status.
+			if nextMoves[i].nextDoneCh == nextDoneCh {
+				nextMoves[i].nextDoneCh = nil
+				nextMoves[i].Next++
+			}
+		}
 		o.m.Unlock()
 
 		broadcastDoneCh <- err
@@ -649,7 +700,7 @@ func (o *Orchestrator) runSupplyMove(stopCh chan struct{},
 
 // findNextMoves invokes the application's FindMoveFunc callback.
 func (o *Orchestrator) findNextMoves(
-	node string, nextMovesArr []*NextMoves) *NextMoves {
+	node string, nextMovesArr []*NextMoves) int {
 	moves := make([]PartitionMove, len(nextMovesArr))
 
 	for i, nextMoves := range nextMovesArr {
@@ -662,8 +713,7 @@ func (o *Orchestrator) findNextMoves(
 			Op:        m.Op,
 		}
 	}
-
-	return nextMovesArr[o.findMove(node, moves)]
+	return o.findMove(node, moves)
 }
 
 // waitForAllMoversDone returns when all concurrent movers have

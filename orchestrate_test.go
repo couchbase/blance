@@ -2,6 +2,8 @@ package blance
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
 	"sync"
 	"testing"
 )
@@ -58,8 +60,8 @@ func TestOrchestrateBadMoves(t *testing.T) {
 func TestOrchestrateErrAssignPartitionFunc(t *testing.T) {
 	theErr := fmt.Errorf("theErr")
 
-	errAssignPartitionFunc := func(stopCh chan struct{},
-		partition, node, state, op string) error {
+	errAssignPartitionsFunc := func(stopCh chan struct{},
+		node string, partition, state, op []string) error {
 		return theErr
 	}
 
@@ -83,7 +85,7 @@ func TestOrchestrateErrAssignPartitionFunc(t *testing.T) {
 				},
 			},
 		},
-		errAssignPartitionFunc,
+		errAssignPartitionsFunc,
 		LowestWeightPartitionMoveForNode,
 	)
 	if err != nil || o == nil {
@@ -118,7 +120,7 @@ func TestOrchestrateErrAssignPartitionFunc(t *testing.T) {
 func testMkFuncs() (
 	map[string]map[string]string,
 	map[string][]assignPartitionRec,
-	AssignPartitionFunc,
+	AssignPartitionsFunc,
 ) {
 	var m sync.Mutex
 
@@ -127,28 +129,28 @@ func testMkFuncs() (
 
 	assignPartitionRecs := map[string][]assignPartitionRec{}
 
-	assignPartitionFunc := func(stopCh chan struct{},
-		partition, node, state, op string) error {
+	assignPartitionsFunc := func(stopCh chan struct{},
+		node string, partitions, states, ops []string) error {
 		m.Lock()
 
-		assignPartitionRecs[partition] =
-			append(assignPartitionRecs[partition],
-				assignPartitionRec{partition, node, state, op})
+		assignPartitionRecs[partitions[0]] =
+			append(assignPartitionRecs[partitions[0]],
+				assignPartitionRec{partitions[0], node, states[0], ops[0]})
 
-		nodes := currStates[partition]
+		nodes := currStates[partitions[0]]
 		if nodes == nil {
 			nodes = map[string]string{}
-			currStates[partition] = nodes
+			currStates[partitions[0]] = nodes
 		}
 
-		nodes[node] = state
+		nodes[node] = states[0]
 
 		m.Unlock()
 
 		return nil
 	}
 
-	return currStates, assignPartitionRecs, assignPartitionFunc
+	return currStates, assignPartitionRecs, assignPartitionsFunc
 }
 
 func TestOrchestrateEarlyPauseResume(t *testing.T) {
@@ -160,14 +162,14 @@ func TestOrchestrateMidPauseResume(t *testing.T) {
 }
 
 func testOrchestratePauseResume(t *testing.T, numProgress int) {
-	_, _, assignPartitionFunc := testMkFuncs()
+	_, _, assignPartitionsFunc := testMkFuncs()
 
 	pauseCh := make(chan struct{})
 
-	slowAssignPartitionFunc := func(stopCh chan struct{},
-		partition string, node string, state string, op string) error {
+	slowAssignPartitionsFunc := func(stopCh chan struct{},
+		node string, partitions, states, ops []string) error {
 		<-pauseCh
-		return assignPartitionFunc(stopCh, partition, node, state, op)
+		return assignPartitionsFunc(stopCh, node, partitions, states, ops)
 	}
 
 	o, err := OrchestrateMoves(
@@ -220,7 +222,7 @@ func testOrchestratePauseResume(t *testing.T, numProgress int) {
 				},
 			},
 		},
-		slowAssignPartitionFunc,
+		slowAssignPartitionsFunc,
 		LowestWeightPartitionMoveForNode,
 	)
 	if err != nil || o == nil {
@@ -275,15 +277,15 @@ func TestOrchestratePauseResumeIntoMovesSupplier(t *testing.T) {
 
 func testOrchestratePauseResumeIntoMovesSupplier(t *testing.T,
 	numProgressBeforePause, numFastAssignPartitionFuncs int) {
-	_, _, assignPartitionFunc := testMkFuncs()
+	_, _, assignPartitionsFunc := testMkFuncs()
 
 	var m sync.Mutex
 	numAssignPartitionFuncs := 0
 
 	slowCh := make(chan struct{})
 
-	slowAssignPartitionFunc := func(stopCh chan struct{},
-		partition string, node string, state string, op string) error {
+	slowAssignPartitionsFunc := func(stopCh chan struct{},
+		node string, partitions, states, ops []string) error {
 		m.Lock()
 		numAssignPartitionFuncs++
 		n := numAssignPartitionFuncs
@@ -293,7 +295,7 @@ func testOrchestratePauseResumeIntoMovesSupplier(t *testing.T,
 			<-slowCh
 		}
 
-		return assignPartitionFunc(stopCh, partition, node, state, op)
+		return assignPartitionsFunc(stopCh, node, partitions, states, ops)
 	}
 
 	o, err := OrchestrateMoves(
@@ -332,7 +334,7 @@ func testOrchestratePauseResumeIntoMovesSupplier(t *testing.T,
 				},
 			},
 		},
-		slowAssignPartitionFunc,
+		slowAssignPartitionsFunc,
 		LowestWeightPartitionMoveForNode,
 	)
 	if err != nil || o == nil {
@@ -434,6 +436,603 @@ func TestOrchestrateEarlyStop(t *testing.T) {
 
 	if lastProgress.TotStop != 1 {
 		t.Errorf("expected stop of 1")
+	}
+}
+
+func TestOrchestrateConcurrentMoves(t *testing.T) {
+	options := OrchestratorOptions{}
+
+	tests := []struct {
+		skip                    bool
+		label                   string
+		partitionModel          PartitionModel
+		maxConcurrentMoves      int
+		numProgress             int
+		nodesAll                []string
+		begMap                  PartitionMap
+		endMap                  PartitionMap
+		assignPartitionsFunc    AssignPartitionsFunc
+		skipCallbacks           int
+		expConcurrentMovesCount int
+		expNode                 string
+		expMovePartitions       []string
+		expMoveStates           []string
+		expMoveOps              []string
+		expectErr               error
+	}{
+		{
+			label:              "2 node, 2 partition movement",
+			partitionModel:     mrPartitionModel,
+			maxConcurrentMoves: 2,
+			numProgress:        1,
+			nodesAll:           []string{"a", "b"},
+			begMap: PartitionMap{
+				"00": &Partition{
+					Name: "00",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"01": &Partition{
+					Name: "01",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"02": &Partition{
+					Name: "02",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"03": &Partition{
+					Name: "03",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+			},
+			endMap: PartitionMap{
+				"00": &Partition{
+					Name: "00",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"01": &Partition{
+					Name: "01",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"02": &Partition{
+					Name: "02",
+					NodesByState: map[string][]string{
+						"primary": {"b"},
+						"replica": {},
+					},
+				},
+				"03": &Partition{
+					Name: "3",
+					NodesByState: map[string][]string{
+						"primary": {"b"},
+						"replica": {},
+					},
+				},
+			},
+			expNode:                 "b",
+			expConcurrentMovesCount: 2,
+			expMovePartitions:       []string{"02", "03"},
+			expMoveStates:           []string{"primary", "primary"},
+			expMoveOps:              []string{"add", "add"},
+			expectErr:               nil,
+		},
+		{
+			label:              "1 node, 4 partition movement",
+			partitionModel:     mrPartitionModel,
+			maxConcurrentMoves: 4,
+			numProgress:        1,
+			nodesAll:           []string{"a"},
+			begMap: PartitionMap{
+				"00": &Partition{
+					Name:         "00",
+					NodesByState: map[string][]string{},
+				},
+				"01": &Partition{
+					Name:         "01",
+					NodesByState: map[string][]string{},
+				},
+				"02": &Partition{
+					Name:         "02",
+					NodesByState: map[string][]string{},
+				},
+				"03": &Partition{
+					Name:         "03",
+					NodesByState: map[string][]string{},
+				},
+			},
+			endMap: PartitionMap{
+				"00": &Partition{
+					Name: "00",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"01": &Partition{
+					Name: "01",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"02": &Partition{
+					Name: "02",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"03": &Partition{
+					Name: "3",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+			},
+			expConcurrentMovesCount: 4,
+			expNode:                 "a",
+			expMovePartitions:       []string{"00", "01", "02", "03"},
+			expMoveStates:           []string{"primary", "primary", "primary", "primary"},
+			expMoveOps:              []string{"add", "add", "add", "add"},
+			expectErr:               nil,
+		},
+		{
+			skip:                    true,
+			label:                   "empty assignPartitions callback",
+			partitionModel:          mrPartitionModel,
+			maxConcurrentMoves:      2,
+			expConcurrentMovesCount: 2,
+			numProgress:             0,
+			nodesAll:                []string{"a", "b"},
+			begMap:                  PartitionMap{},
+			endMap:                  PartitionMap{},
+			expectErr: fmt.Errorf("callback implementation for " +
+				"AssignPartitionsFunc is expected"),
+		},
+		{
+			label:              "1 node delete, 2 partition promote",
+			partitionModel:     mrPartitionModel,
+			maxConcurrentMoves: 4,
+			numProgress:        1,
+			nodesAll:           []string{"a"},
+			begMap: PartitionMap{
+				"00": &Partition{
+					Name: "00",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {"b"},
+					},
+				},
+				"01": &Partition{
+					Name: "01",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {"b"},
+					},
+				},
+				"02": &Partition{
+					Name: "02",
+					NodesByState: map[string][]string{
+						"primary": {"b"},
+						"replica": {"a"},
+					},
+				},
+				"03": &Partition{
+					Name: "03",
+					NodesByState: map[string][]string{
+						"primary": {"b"},
+						"replica": {"a"},
+					},
+				},
+			},
+			endMap: PartitionMap{
+				"00": &Partition{
+					Name: "00",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"01": &Partition{
+					Name: "01",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"02": &Partition{
+					Name: "02",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"03": &Partition{
+					Name: "3",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+			},
+			expConcurrentMovesCount: 2,
+			expNode:                 "a",
+			expMovePartitions:       []string{"02", "03"},
+			expMoveStates:           []string{"primary", "primary"},
+			expMoveOps:              []string{"promote", "promote"},
+			expectErr:               nil,
+		},
+		{
+			label:              "1 node delete, 2 partition del",
+			partitionModel:     mrPartitionModel,
+			maxConcurrentMoves: 2,
+			numProgress:        2,
+			nodesAll:           []string{"a", "b"},
+			begMap: PartitionMap{
+				"00": &Partition{
+					Name: "00",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {"b"},
+					},
+				},
+				"01": &Partition{
+					Name: "01",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {"b"},
+					},
+				},
+				"02": &Partition{
+					Name: "02",
+					NodesByState: map[string][]string{
+						"primary": {"b"},
+						"replica": {"a"},
+					},
+				},
+				"03": &Partition{
+					Name: "03",
+					NodesByState: map[string][]string{
+						"primary": {"b"},
+						"replica": {"a"},
+					},
+				},
+			},
+			endMap: PartitionMap{
+				"00": &Partition{
+					Name: "00",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"01": &Partition{
+					Name: "01",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"02": &Partition{
+					Name: "02",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"03": &Partition{
+					Name: "03",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+			},
+			expConcurrentMovesCount: 2,
+			expNode:                 "b",
+			expMovePartitions:       []string{"00", "01"},
+			expMoveStates:           []string{"", ""},
+			expMoveOps:              []string{"del", "del"},
+			expectErr:               nil,
+		},
+		{
+			label:              "2 node deletions out of 3 node cluster",
+			partitionModel:     mrPartitionModel,
+			maxConcurrentMoves: 2,
+			numProgress:        6,
+			nodesAll:           []string{"a", "b", "c"},
+			begMap: PartitionMap{
+				"00": &Partition{
+					Name: "00",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {"b"},
+					},
+				},
+				"01": &Partition{
+					Name: "01",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {"c"},
+					},
+				},
+				"02": &Partition{
+					Name: "02",
+					NodesByState: map[string][]string{
+						"primary": {"b"},
+						"replica": {"a"},
+					},
+				},
+				"03": &Partition{
+					Name: "03",
+					NodesByState: map[string][]string{
+						"primary": {"b"},
+						"replica": {"c"},
+					},
+				},
+				"04": &Partition{
+					Name: "04",
+					NodesByState: map[string][]string{
+						"primary": {"c"},
+						"replica": {"a"},
+					},
+				},
+				"05": &Partition{
+					Name: "05",
+					NodesByState: map[string][]string{
+						"primary": {"c"},
+						"replica": {"b"},
+					},
+				},
+			},
+			endMap: PartitionMap{
+				"00": &Partition{
+					Name: "00",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"01": &Partition{
+					Name: "01",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"02": &Partition{
+					Name: "02",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"03": &Partition{
+					Name: "03",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"04": &Partition{
+					Name: "04",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"05": &Partition{
+					Name: "05",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+			},
+			expConcurrentMovesCount: 2,
+			skipCallbacks:           1,
+			expNode:                 "a",
+			expMovePartitions:       []string{"03", "05"},
+			expMoveStates:           []string{"primary", "primary"},
+			expMoveOps:              []string{"add", "add"},
+			expectErr:               nil,
+		},
+		{
+			label:              "2 node deletions out of 3 node cluster",
+			partitionModel:     mrPartitionModel,
+			maxConcurrentMoves: 4,
+			numProgress:        6,
+			nodesAll:           []string{"a", "b", "c"},
+			begMap: PartitionMap{
+				"00": &Partition{
+					Name: "00",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {"b"},
+					},
+				},
+				"01": &Partition{
+					Name: "01",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {"c"},
+					},
+				},
+				"02": &Partition{
+					Name: "02",
+					NodesByState: map[string][]string{
+						"primary": {"b"},
+						"replica": {"a"},
+					},
+				},
+				"03": &Partition{
+					Name: "03",
+					NodesByState: map[string][]string{
+						"primary": {"b"},
+						"replica": {"c"},
+					},
+				},
+				"04": &Partition{
+					Name: "04",
+					NodesByState: map[string][]string{
+						"primary": {"c"},
+						"replica": {"a"},
+					},
+				},
+				"05": &Partition{
+					Name: "05",
+					NodesByState: map[string][]string{
+						"primary": {"c"},
+						"replica": {"b"},
+					},
+				},
+			},
+			endMap: PartitionMap{
+				"00": &Partition{
+					Name: "00",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"01": &Partition{
+					Name: "01",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"02": &Partition{
+					Name: "02",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"03": &Partition{
+					Name: "03",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"04": &Partition{
+					Name: "04",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+				"05": &Partition{
+					Name: "05",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {},
+					},
+				},
+			},
+			expConcurrentMovesCount: 4,
+			expNode:                 "a",
+			expMovePartitions:       []string{"02", "03", "04", "05"},
+			expMoveStates:           []string{"primary", "primary", "primary", "primary"},
+			expMoveOps:              []string{"promote", "promote", "add", "add"},
+			expectErr:               nil,
+		},
+	}
+
+	for testi, test := range tests {
+		_, _, assignPartitionsFunc := testMkFuncs()
+
+		if !test.skip {
+			test.assignPartitionsFunc = func(stopCh chan struct{},
+				node string, partitions []string, states []string, ops []string) error {
+				if test.expNode != node {
+					return nil
+				}
+				if test.skipCallbacks > 0 {
+					test.skipCallbacks--
+					return nil
+				}
+
+				if len(partitions) != test.expConcurrentMovesCount {
+					t.Errorf("testi: %d, label: %s, concurrent partition moves expected: %d, but got only: %d",
+						testi, test.label, test.expConcurrentMovesCount, len(partitions))
+				}
+
+				sort.Strings(partitions)
+				if !reflect.DeepEqual(test.expMovePartitions, partitions) {
+					t.Errorf("testi: %d, label: %s, moving partitions expected: %+v, but got: %+v",
+						testi, test.label, test.expMovePartitions, partitions)
+				}
+
+				sort.Strings(states)
+				if !reflect.DeepEqual(test.expMoveStates, states) {
+					t.Errorf("testi: %d, label: %s, moving states expected: %+v, but got: %+v",
+						testi, test.label, test.expMoveStates, states)
+				}
+
+				if !reflect.DeepEqual(test.expMoveOps, ops) {
+					t.Errorf("testi: %d, label: %s, moving ops expected: %+v, but got: %+v",
+						testi, test.label, test.expMoveStates, ops)
+				}
+
+				assignPartitionsFunc(stopCh, node, partitions, states, ops)
+				return nil
+			}
+		}
+
+		options.MaxConcurrentPartitionMovesPerNode = test.maxConcurrentMoves
+
+		o, err := OrchestrateMoves(
+			test.partitionModel,
+			options,
+			test.nodesAll,
+			test.begMap,
+			test.endMap,
+			test.assignPartitionsFunc,
+			LowestWeightPartitionMoveForNode,
+		)
+		if test.expectErr == nil && o == nil {
+			t.Errorf("testi: %d, label: %s,"+
+				" expected o",
+				testi, test.label)
+		}
+		if err != nil && test.expectErr != nil && err.Error() != test.expectErr.Error() {
+			t.Errorf("testi: %d, label: %s,"+
+				" expectErr: %v, got: %v",
+				testi, test.label,
+				test.expectErr, err)
+		}
+
+		if !test.skip {
+			for {
+				prog := <-o.ProgressCh()
+
+				if prog.TotMoverAssignPartitionOk >= test.numProgress {
+					break
+				}
+			}
+
+			o.Stop()
+		}
 	}
 }
 
