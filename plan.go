@@ -197,6 +197,7 @@ func planNextMapInnerEx(
 			}
 
 			candidateNodes = append(hierarchyNodes, candidateNodes...)
+			candidateNodes = stringsDeduplicate(candidateNodes)
 		}
 
 		if len(candidateNodes) >= constraints {
@@ -562,6 +563,7 @@ func (ns *nodeSorter) Less(i, j int) bool {
 	if si > sj {
 		return false
 	}
+
 	return ns.nodePositions[ns.a[i]] < ns.nodePositions[ns.a[j]]
 }
 

@@ -52,3 +52,18 @@ func StringsIntersectStrings(a, b []string) []string {
 	}
 	return rv
 }
+
+// stringsDeduplicate returns a brand new array that has the
+// all the unique of a preserving the order.
+func stringsDeduplicate(a []string) []string {
+	bMap := make(map[string]struct{})
+	rv := make([]string, 0, len(bMap))
+	for _, s := range a {
+		if _, ok := bMap[s]; ok {
+			continue
+		}
+		bMap[s] = struct{}{}
+		rv = append(rv, s)
+	}
+	return rv
+}
