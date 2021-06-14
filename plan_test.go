@@ -2508,3 +2508,249 @@ func Test2Replicas(t *testing.T) {
 	}
 	testVisTestCases(t, tests)
 }
+
+func TestPlanNextMapHierarchyMultiRackFailureCases(t *testing.T) {
+	partitionModel1Primary1Replica := PartitionModel{
+		"primary": &PartitionModelState{
+			Priority: 0, Constraints: 1,
+		},
+		"replica": &PartitionModelState{
+			Priority: 1, Constraints: 2,
+		},
+	}
+	nodeHierarchy2Rack := map[string]string{
+		"a": "r0",
+		"b": "r0",
+		"c": "r0",
+		"d": "r1",
+		"e": "r1",
+		"f": "r1",
+		"g": "r2",
+		"h": "r2",
+		"i": "r2",
+
+		"r0": "z0",
+		"r1": "z0",
+		"r2": "z0",
+	}
+	hierarchyRulesWantOtherRack := HierarchyRules{
+		"replica": []*HierarchyRule{
+			{
+				IncludeLevel: 2,
+				ExcludeLevel: 1,
+			},
+		},
+	}
+	tests := []VisTestCase{
+		{
+			About: "3 racks, 3 nodes from each rack",
+			FromTo: [][]string{
+				// abc def ghi
+				{"", "m0    s1        s0"},
+				{"", "  m0    s0  s1    "},
+				{"", "    m0    s0  s1  "},
+				{"", "s1    m0        s0"},
+				{"", "  s0    m0  s1    "},
+				{"", "    s0    m0  s1  "},
+				{"", "s0    s1    m0    "},
+				{"", "  s0    s1    m0  "},
+			},
+			Nodes:          []string{"a", "b", "c", "d", "e", "f", "g", "h", "i"},
+			NodesToRemove:  []string{},
+			NodesToAdd:     []string{},
+			FromToPriority: true,
+			Model:          partitionModel1Primary1Replica,
+			NodeHierarchy:  nodeHierarchy2Rack,
+			HierarchyRules: hierarchyRulesWantOtherRack,
+			expNumWarnings: 0,
+		},
+		{
+			About: "Out of 3 racks, remove 2 racks completely",
+			FromTo: [][]string{
+				// abc def ghi    		abc
+				{"m0    s1        s0", "m0s1s0"},
+				{"  m0    s0  s1    ", "s0m0s1"},
+				{"    m0    s0  s1  ", "s0s1m0"},
+				{"s1    m0        s0", "s0s1m0"},
+				{"  s0    m0  s1    ", "m0s1s0"},
+				{"    s0    m0  s1  ", "s0m0s1"},
+				{"s0    s1    m0    ", "s0s1m0"},
+				{"  s0    s1    m0  ", "m0s1s0"},
+			},
+			Nodes:          []string{"a", "b", "c", "d", "e", "f", "g", "h", "i"},
+			NodesToRemove:  []string{"d", "e", "f", "g", "h", "i"},
+			NodesToAdd:     []string{},
+			FromToPriority: true,
+			Model:          partitionModel1Primary1Replica,
+			NodeHierarchy:  nodeHierarchy2Rack,
+			HierarchyRules: hierarchyRulesWantOtherRack,
+			expNumWarnings: 0,
+		},
+		{
+			About: "4 racks, 1 node on each rack",
+			FromTo: [][]string{
+				// a b c d
+				{"", "m0s0s1s2"},
+				{"", "s0m0s1s2"},
+				{"", "s0s1m0s2"},
+				{"", "s0s1s2m0"},
+			},
+			Nodes:          []string{"a", "b", "c", "d"},
+			NodesToRemove:  []string{},
+			NodesToAdd:     []string{},
+			FromToPriority: true,
+			Model: PartitionModel{
+				"primary": &PartitionModelState{
+					Priority: 0, Constraints: 1,
+				},
+				"replica": &PartitionModelState{
+					Priority: 1, Constraints: 3,
+				},
+			},
+			NodeHierarchy: map[string]string{
+				"a":  "r0",
+				"b":  "r1",
+				"c":  "r2",
+				"d":  "r3",
+				"r0": "z0",
+				"r1": "z0",
+				"r2": "z0",
+				"r3": "z0",
+			},
+			HierarchyRules: hierarchyRulesWantOtherRack,
+			expNumWarnings: 0,
+		},
+		{
+			About: "3 out of 4 racks down with an additional node in rack r1",
+			FromTo: [][]string{
+				// a b c d       ae
+				{"m0s0s1s2", "m0      s0"},
+				{"s0m0s1s2", "s0      m0"},
+				{"s0s1m0s2", "m0      s0"},
+				{"s0s1s2m0", "s0      m0"},
+			},
+			Nodes:          []string{"a", "b", "c", "d", "e"},
+			NodesToRemove:  []string{"b", "c", "d"},
+			NodesToAdd:     []string{"e"},
+			FromToPriority: true,
+			Model: PartitionModel{
+				"primary": &PartitionModelState{
+					Priority: 0, Constraints: 1,
+				},
+				"replica": &PartitionModelState{
+					Priority: 1, Constraints: 3,
+				},
+			},
+			NodeHierarchy: map[string]string{
+				"a":  "r0",
+				"b":  "r1",
+				"c":  "r2",
+				"d":  "r3",
+				"e":  "r0",
+				"r0": "z0",
+				"r1": "z0",
+				"r2": "z0",
+				"r3": "z0",
+			},
+			HierarchyRules: hierarchyRulesWantOtherRack,
+			expNumWarnings: 4,
+		},
+		{
+			About: "2 racks, 2 nodes in each rack",
+			FromTo: [][]string{
+				// ab cd
+				{"", "m0  s0  "},
+				{"", "  m0  s0"},
+				{"", "s0  m0  "},
+				{"", "  s0  m0"},
+			},
+			Nodes:          []string{"a", "b", "c", "d"},
+			NodesToRemove:  []string{},
+			NodesToAdd:     []string{},
+			FromToPriority: true,
+			Model: PartitionModel{
+				"primary": &PartitionModelState{
+					Priority: 0, Constraints: 1,
+				},
+				"replica": &PartitionModelState{
+					Priority: 1, Constraints: 1,
+				},
+			},
+			NodeHierarchy: map[string]string{
+				"a":  "r0",
+				"b":  "r0",
+				"c":  "r1",
+				"d":  "r1",
+				"r0": "z0",
+				"r1": "z0",
+			},
+			HierarchyRules: hierarchyRulesWantOtherRack,
+			expNumWarnings: 0,
+		},
+		{
+			About: "1 rack down out of 2 racks",
+			FromTo: [][]string{
+				// ab cd		  cd
+				{"m0  s0  ", "    m0s0"},
+				{"  m0  s0", "    s0m0"},
+				{"s0  m0  ", "    m0s0"},
+				{"  s0  m0", "    s0m0"},
+			},
+			Nodes:          []string{"a", "b", "c", "d"},
+			NodesToRemove:  []string{"a", "b"},
+			NodesToAdd:     []string{},
+			FromToPriority: true,
+			Model: PartitionModel{
+				"primary": &PartitionModelState{
+					Priority: 0, Constraints: 1,
+				},
+				"replica": &PartitionModelState{
+					Priority: 1, Constraints: 1,
+				},
+			},
+			NodeHierarchy: map[string]string{
+				"a":  "r0",
+				"b":  "r0",
+				"c":  "r1",
+				"d":  "r1",
+				"r0": "z0",
+				"r1": "z0",
+			},
+			HierarchyRules: hierarchyRulesWantOtherRack,
+			expNumWarnings: 0,
+		},
+		{
+			About: "just 1 rack, 3 nodes",
+			FromTo: [][]string{
+				// abc
+				{"", "m0s0  "},
+				{"", "s0m0  "},
+				{"", "s0  m0"},
+				{"", "m0  s0"},
+				{"", "  m0s0"},
+				{"", "  s0m0"},
+			},
+			Nodes:          []string{"a", "b", "c"},
+			NodesToRemove:  []string{},
+			NodesToAdd:     []string{},
+			FromToPriority: true,
+			Model: PartitionModel{
+				"primary": &PartitionModelState{
+					Priority: 0, Constraints: 1,
+				},
+				"replica": &PartitionModelState{
+					Priority: 1, Constraints: 1,
+				},
+			},
+			NodeHierarchy: map[string]string{
+				"a":  "r0",
+				"b":  "r0",
+				"c":  "r0",
+				"r0": "z0",
+			},
+			HierarchyRules: hierarchyRulesWantOtherRack,
+			expNumWarnings: 0,
+		},
+	}
+	testVisTestCases(t, tests)
+}

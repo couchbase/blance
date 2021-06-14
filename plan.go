@@ -164,35 +164,42 @@ func planNextMapInnerEx(
 					h = hierarchyNodes[0]
 				}
 
-				hierarchyCandidates := includeExcludeNodes(h,
-					hierarchyRule.IncludeLevel,
-					hierarchyRule.ExcludeLevel,
-					opts.NodeHierarchy, hierarchyChildren)
-				hierarchyCandidates =
-					StringsIntersectStrings(hierarchyCandidates, nodesNext)
-				hierarchyCandidates =
-					excludeHigherPriorityNodes(hierarchyCandidates)
+				// Pick the nodes for the partition until the given constaint is met.
+				// {h} + {hierarchyNodes} contains the list of the nodes assigned for the
+				// partition so far, so that the hierarchial inclusion or exclusion of
+				// future node selections can be cognizant of the previous node assignments.
+				for i := 0; i < constraints; i++ {
+					hierarchyCandidates := includeExcludeNodesIntersect(
+						append([]string{h}, hierarchyNodes...),
+						hierarchyRule.IncludeLevel,
+						hierarchyRule.ExcludeLevel,
+						opts.NodeHierarchy, hierarchyChildren)
+					hierarchyCandidates =
+						StringsIntersectStrings(hierarchyCandidates, nodesNext)
+					hierarchyCandidates =
+						excludeHigherPriorityNodes(hierarchyCandidates)
 
-				sort.Sort(&nodeSorter{
-					stateName:           stateName,
-					partition:           partition,
-					numPartitions:       len(prevMap),
-					topPriorityNode:     topPriorityNode,
-					stateNodeCounts:     stateNodeCounts,
-					nodeToNodeCounts:    nodeToNodeCounts,
-					nodePartitionCounts: nodePartitionCounts,
-					nodePositions:       nodePositions,
-					nodeWeights:         opts.NodeWeights,
-					stickiness:          stickiness,
-					a:                   hierarchyCandidates,
-				})
+					sort.Sort(&nodeSorter{
+						stateName:           stateName,
+						partition:           partition,
+						numPartitions:       len(prevMap),
+						topPriorityNode:     topPriorityNode,
+						stateNodeCounts:     stateNodeCounts,
+						nodeToNodeCounts:    nodeToNodeCounts,
+						nodePartitionCounts: nodePartitionCounts,
+						nodePositions:       nodePositions,
+						nodeWeights:         opts.NodeWeights,
+						stickiness:          stickiness,
+						a:                   hierarchyCandidates,
+					})
 
-				if len(hierarchyCandidates) > 0 {
-					hierarchyNodes = append(hierarchyNodes,
-						hierarchyCandidates[0])
-				} else if len(candidateNodes) > 0 {
-					hierarchyNodes = append(hierarchyNodes,
-						candidateNodes[0])
+					if len(hierarchyCandidates) > 0 {
+						hierarchyNodes = append(hierarchyNodes,
+							hierarchyCandidates[0])
+					} else if len(candidateNodes) > 0 {
+						hierarchyNodes = append(hierarchyNodes,
+							candidateNodes[0])
+					}
 				}
 			}
 
@@ -658,6 +665,25 @@ func includeExcludeNodes(node string,
 		findLeaves(findAncestor(node, mapParents, excludeLevel), mapChildren)
 
 	return StringsRemoveStrings(incNodes, excNodes)
+}
+
+// includeExcludeNodesIntersect gives back the set of filtered nodes
+// according to the given inclusion and exclusion parameter values.
+func includeExcludeNodesIntersect(nodes []string,
+	includeLevel int,
+	excludeLevel int,
+	mapParents map[string]string,
+	mapChildren map[string][]string) (rv []string) {
+	for _, node := range nodes {
+		res := includeExcludeNodes(node, includeLevel, excludeLevel,
+			mapParents, mapChildren)
+		if len(rv) == 0 {
+			rv = res
+			continue
+		}
+		rv = StringsIntersectStrings(rv, res)
+	}
+	return
 }
 
 func findAncestor(node string,
