@@ -617,8 +617,12 @@ func (ns *nodeSorter) Score(i int) float64 {
 
 	if ns.nodeWeights != nil {
 		w, exists := ns.nodeWeights[node]
-		if exists && w > 0 {
-			r = r / float64(w)
+		if exists {
+			if w > 0 {
+				r = r / float64(w)
+			} else if w < 0 && NodeScoreBooster != nil {
+				r += NodeScoreBooster(w, currentFactor)
+			}
 		}
 	}
 
@@ -626,6 +630,14 @@ func (ns *nodeSorter) Score(i int) float64 {
 
 	return r
 }
+
+// NodeScoreBooster lets the clients override their optional
+// score booster callback implementations.
+var NodeScoreBooster CustomNodeScoreBooster
+
+// CustomNodeScoreBooster is an optional callback that helps the clients to
+// override the node weights and thereby control the partition placements.
+type CustomNodeScoreBooster func(weight int, stickiness float64) float64
 
 // --------------------------------------------------------
 
