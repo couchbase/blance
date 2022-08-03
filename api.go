@@ -152,24 +152,30 @@ func PlanNextMapEx(
 		model, options)
 }
 
-// PlanNextMapOptions represents optional parameters to the
-// PlanNextMapEx() API.  The ModelStateConstraints allows the caller
-// to override the constraints defined in the model.  The
-// ModelStateConstraints is keyed by stateName (like "primary",
-// "replica", etc).  The PartitionWeights is optional and is keyed by
-// partitionName; it allows the caller to specify that some partitions
-// are bigger than others (e.g., California has more records than
-// Hawaii); default partition weight is 1.  The StateStickiness is
-// optional and is keyed by stateName; it allows the caller to prefer
-// not moving data at the tradeoff of potentially more imbalance;
-// default state stickiness is 1.5.  The NodeWeights is optional and
-// is keyed by node name; it allows the caller to specify that some
-// nodes can hold more partitions than other nodes; default node
-// weight is 1.  The NodeHierarchy defines optional parent
-// relationships per node; it is keyed by node and a value is the
-// node's parent.  The HierarchyRules allows the caller to optionally
-// define replica placement policy (e.g., same/different rack;
-// same/different zone; etc).
+// PlanNextMapOptions represents optional parameters to the PlanNextMapEx() API.
+//
+// ModelStateConstraints allows the caller to override the constraints
+// defined in the model. The ModelStateConstraints is keyed by stateName
+// (like "primary", "replica", etc).
+//
+// PartitionWeights is optional and is keyed by partitionName;
+// it allows the caller to specify that some partitions  are bigger than
+// others (e.g., California has more records than Hawaii); default
+// partition weight is 1.
+//
+// StateStickiness is optional and is keyed by stateName;
+// it allows the caller to prefer not moving data at the tradeoff of
+// potentially more imbalance; default state stickiness is 1.5.
+//
+// NodeWeights is optional and is keyed by node name;
+// it allows the caller to specify that some nodes can hold more
+// partitions than other nodes; default node weight is 1.
+//
+// NodeHierarchy defines optional parent relationships per node;
+// it is keyed by node and a value is the node's parent.
+//
+// HierarchyRules allows the caller to optionally define replica
+// placement policy (e.g., same/different rack; same/different zone; etc).
 type PlanNextMapOptions struct {
 	ModelStateConstraints map[string]int    // Keyed by stateName.
 	PartitionWeights      map[string]int    // Keyed by partitionName.
