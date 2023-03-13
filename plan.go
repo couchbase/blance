@@ -138,19 +138,21 @@ func planNextMapInnerEx(
 
 		candidateNodes = excludeHigherPriorityNodes(candidateNodes)
 
-		sort.Sort(&nodeSorter{
-			stateName:           stateName,
-			partition:           partition,
-			numPartitions:       len(prevMap),
-			topPriorityNode:     topPriorityNode,
-			stateNodeCounts:     stateNodeCounts,
-			nodeToNodeCounts:    nodeToNodeCounts,
-			nodePartitionCounts: nodePartitionCounts,
-			nodePositions:       nodePositions,
-			nodeWeights:         opts.NodeWeights,
-			stickiness:          stickiness,
-			a:                   candidateNodes,
-		})
+		config := &NodeSorterConfig{
+			StateName:           stateName,
+			Partition:           partition,
+			NumPartitions:       len(prevMap),
+			TopPriorityNode:     topPriorityNode,
+			StateNodeCounts:     stateNodeCounts,
+			NodeToNodeCounts:    nodeToNodeCounts,
+			NodePartitionCounts: nodePartitionCounts,
+			NodePositions:       nodePositions,
+			NodeWeights:         opts.NodeWeights,
+			Stickiness:          stickiness,
+			Nodes:               candidateNodes,
+		}
+		nodeSorter := CustomNodeSorter(config)
+		sort.Sort(nodeSorter)
 
 		if opts.HierarchyRules != nil {
 			hierarchyNodes := []string{}
@@ -176,19 +178,21 @@ func planNextMapInnerEx(
 					hierarchyCandidates =
 						excludeHigherPriorityNodes(hierarchyCandidates)
 
-					sort.Sort(&nodeSorter{
-						stateName:           stateName,
-						partition:           partition,
-						numPartitions:       len(prevMap),
-						topPriorityNode:     topPriorityNode,
-						stateNodeCounts:     stateNodeCounts,
-						nodeToNodeCounts:    nodeToNodeCounts,
-						nodePartitionCounts: nodePartitionCounts,
-						nodePositions:       nodePositions,
-						nodeWeights:         opts.NodeWeights,
-						stickiness:          stickiness,
-						a:                   hierarchyCandidates,
-					})
+					config := &NodeSorterConfig{
+						StateName:           stateName,
+						Partition:           partition,
+						NumPartitions:       len(prevMap),
+						TopPriorityNode:     topPriorityNode,
+						StateNodeCounts:     stateNodeCounts,
+						NodeToNodeCounts:    nodeToNodeCounts,
+						NodePartitionCounts: nodePartitionCounts,
+						NodePositions:       nodePositions,
+						NodeWeights:         opts.NodeWeights,
+						Stickiness:          stickiness,
+						Nodes:               hierarchyCandidates,
+					}
+					nodeSorter := CustomNodeSorter(config)
+					sort.Sort(nodeSorter)
 
 					if len(hierarchyCandidates) > 0 {
 						hierarchyNodes = append(hierarchyNodes,
@@ -342,11 +346,11 @@ func adjustStateNodeCounts(stateNodeCounts map[string]map[string]int,
 }
 
 // Example, with input partitionMap of...
-//   { "0": { NodesByState: {"primary": ["a"], "replica": ["b", "c"]} },
-//     "1": { NodesByState: {"primary": ["b"], "replica": ["c"]} } }
+// 	 { "0": { NodesByState: {"primary": ["a"], "replica": ["b", "c"]} },
+//	   "1": { NodesByState: {"primary": ["b"], "replica": ["c"]} } }
 // then return value will be...
-//   { "primary": { "a": 1, "b": 1 },
-//     "replica": { "b": 1, "c": 2 } }
+//	 { "primary": { "a": 1, "b": 1 },
+//	   "replica": { "b": 1, "c": 2 } }
 func countStateNodes(
 	partitionMap PartitionMap,
 	partitionWeights map[string]int,
@@ -538,6 +542,38 @@ func (r *partitionSorter) Score(i int) []string {
 }
 
 // --------------------------------------------------------
+
+type NodeSorterConfig struct {
+	StateName           string
+	Partition           *Partition
+	NumPartitions       int
+	TopPriorityNode     string
+	StateNodeCounts     map[string]map[string]int
+	NodeToNodeCounts    map[string]map[string]int
+	NodePartitionCounts map[string]int
+	NodePositions       map[string]int
+	NodeWeights         map[string]int
+	Stickiness          float64
+	Nodes               []string
+}
+
+var CustomNodeSorter = defaultNodeSorter
+
+func defaultNodeSorter(config *NodeSorterConfig) sort.Interface {
+	return &nodeSorter{
+		stateName:           config.StateName,
+		partition:           config.Partition,
+		numPartitions:       config.NumPartitions,
+		topPriorityNode:     config.TopPriorityNode,
+		stateNodeCounts:     config.StateNodeCounts,
+		nodeToNodeCounts:    config.NodeToNodeCounts,
+		nodePartitionCounts: config.NodePartitionCounts,
+		nodePositions:       config.NodePositions,
+		nodeWeights:         config.NodeWeights,
+		stickiness:          config.Stickiness,
+		a:                   config.Nodes,
+	}
+}
 
 type nodeSorter struct {
 	stateName           string
