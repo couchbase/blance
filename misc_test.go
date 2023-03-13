@@ -87,3 +87,22 @@ func TestStringsIntersectStrings(t *testing.T) {
 		}
 	}
 }
+
+func TestStringsDeduplicate(t *testing.T) {
+	tests := []struct {
+		a   []string
+		exp []string
+	}{
+		{[]string{}, []string{}},
+		{[]string{"a"}, []string{"a"}},
+		{[]string{"a", "b", "c"}, []string{"a", "b", "c"}},
+		{[]string{"a", "b", "a", "b"}, []string{"a", "b"}},
+	}
+	for i, c := range tests {
+		r := stringsDeduplicate(c.a)
+		if !reflect.DeepEqual(r, c.exp) {
+			t.Errorf("i: %d, a: %#v, exp: %#v, got: %#v",
+				i, c.a, c.exp, r)
+		}
+	}
+}
