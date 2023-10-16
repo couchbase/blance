@@ -118,7 +118,7 @@ func PlanNextMap(
 	nodeWeights map[string]int, // Keyed by node.
 	nodeHierarchy map[string]string, // Keyed by node, value is node's parent.
 	hierarchyRules HierarchyRules,
-) (nextMap PartitionMap, warnings []string) {
+) (nextMap PartitionMap, warnings map[string][]string) {
 	return PlanNextMapEx(prevMap, nodesAll, nodesToRemove, nodesToAdd,
 		model, PlanNextMapOptions{
 			ModelStateConstraints: modelStateConstraints,
@@ -147,7 +147,7 @@ func PlanNextMapEx(
 	nodesToRemove []string,
 	nodesToAdd []string,
 	model PartitionModel,
-	options PlanNextMapOptions) (nextMap PartitionMap, warnings []string) {
+	options PlanNextMapOptions) (nextMap PartitionMap, warnings map[string][]string) {
 	return planNextMapEx(prevMap, nodesAll, nodesToRemove, nodesToAdd,
 		model, options)
 }

@@ -1504,7 +1504,11 @@ func TestPlanNextMap(t *testing.T) {
 				" [RESULT] r: %s, [EXPECTED] exp: %s",
 				i, jc, jr, jexp)
 		}
-		if c.expNumWarnings != len(rWarnings) {
+		countRWarnings := 0
+		for _, warnings := range rWarnings {
+			countRWarnings += len(warnings)
+		}
+		if c.expNumWarnings != countRWarnings {
 			t.Errorf("i: %d, planNextMap.warnings,"+
 				" c: %#v, rWarnings: %v, expNumWarnings: %d",
 				i, c, rWarnings, c.expNumWarnings)

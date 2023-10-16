@@ -27,7 +27,7 @@ func planNextMapEx(
 	nodesToAdd []string,
 	model PartitionModel,
 	opts PlanNextMapOptions,
-) (nextMap PartitionMap, warnings []string) {
+) (nextMap PartitionMap, warnings map[string][]string) {
 	for i := 0; i < MaxIterationsPerPlan; i++ { // Loop for convergence.
 		nextMap, warnings = planNextMapInnerEx(prevMap,
 			nodesAll, nodesToRemove, nodesToAdd, model, opts)
@@ -49,8 +49,9 @@ func planNextMapInnerEx(
 	nodesToAdd []string,
 	model PartitionModel,
 	opts PlanNextMapOptions,
-) (PartitionMap, []string) {
-	warnings := []string{}
+) (PartitionMap, map[string][]string) {
+	// map of partition name to warnings for that partition
+	partitionWarnings := make(map[string][]string, len(prevMap))
 
 	nodePositions := map[string]int{}
 	for i, node := range nodesAll {
@@ -211,7 +212,7 @@ func planNextMapInnerEx(
 		if len(candidateNodes) >= constraints {
 			candidateNodes = candidateNodes[0:constraints]
 		} else {
-			warnings = append(warnings,
+			partitionWarnings[partition.Name] = append(partitionWarnings[partition.Name],
 				fmt.Sprintf("could not meet constraints: %d,"+
 					" stateName: %s, partitionName: %s",
 					constraints, stateName, partition.Name))
@@ -310,7 +311,7 @@ func planNextMapInnerEx(
 	for _, partition := range nextPartitions {
 		rv[partition.Name] = partition
 	}
-	return rv, warnings
+	return rv, partitionWarnings
 }
 
 // Makes a deep copy of the PartitionMap as an array.
@@ -346,11 +347,14 @@ func adjustStateNodeCounts(stateNodeCounts map[string]map[string]int,
 }
 
 // Example, with input partitionMap of...
-// 	 { "0": { NodesByState: {"primary": ["a"], "replica": ["b", "c"]} },
-//	   "1": { NodesByState: {"primary": ["b"], "replica": ["c"]} } }
+//
+//	{ "0": { NodesByState: {"primary": ["a"], "replica": ["b", "c"]} },
+//	  "1": { NodesByState: {"primary": ["b"], "replica": ["c"]} } }
+//
 // then return value will be...
-//	 { "primary": { "a": 1, "b": 1 },
-//	   "replica": { "b": 1, "c": 2 } }
+//
+//	{ "primary": { "a": 1, "b": 1 },
+//	  "replica": { "b": 1, "c": 2 } }
 func countStateNodes(
 	partitionMap PartitionMap,
 	partitionWeights map[string]int,
