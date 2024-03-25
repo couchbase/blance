@@ -393,6 +393,7 @@ func TestPlanNextMap(t *testing.T) {
 	tests := []struct {
 		About                 string
 		PrevMap               PartitionMap
+		PartitionsToAssign    PartitionMap
 		Nodes                 []string
 		NodesToRemove         []string
 		NodesToAdd            []string
@@ -407,8 +408,9 @@ func TestPlanNextMap(t *testing.T) {
 		expNumWarnings        int
 	}{
 		{
-			About: "single node, simple assignment of primary",
-			PrevMap: PartitionMap{
+			About:   "single node, simple assignment of primary",
+			PrevMap: PartitionMap{},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
 					NodesByState: map[string][]string{},
@@ -450,8 +452,9 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings: 0,
 		},
 		{
-			About: "single node, not enough to assign replicas",
-			PrevMap: PartitionMap{
+			About:   "single node, not enough to assign replicas",
+			PrevMap: PartitionMap{},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
 					NodesByState: map[string][]string{},
@@ -495,11 +498,12 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings: 2,
 		},
 		{
-			About:         "no partitions case",
-			PrevMap:       PartitionMap{},
-			Nodes:         []string{"a"},
-			NodesToRemove: []string{},
-			NodesToAdd:    []string{"a"},
+			About:              "no partitions case",
+			PrevMap:            PartitionMap{},
+			PartitionsToAssign: PartitionMap{},
+			Nodes:              []string{"a"},
+			NodesToRemove:      []string{},
+			NodesToAdd:         []string{"a"},
 			Model: PartitionModel{
 				"primary": &PartitionModelState{
 					Priority: 0, Constraints: 1,
@@ -516,8 +520,9 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings:        0,
 		},
 		{
-			About: "no model states case",
-			PrevMap: PartitionMap{
+			About:   "no model states case",
+			PrevMap: PartitionMap{},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
 					NodesByState: map[string][]string{},
@@ -548,8 +553,9 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings: 0,
 		},
 		{
-			About: "2 nodes, enough for clean primary & replica",
-			PrevMap: PartitionMap{
+			About:   "2 nodes, enough for clean primary & replica",
+			PrevMap: PartitionMap{},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
 					NodesByState: map[string][]string{},
@@ -610,6 +616,16 @@ func TestPlanNextMap(t *testing.T) {
 					},
 				},
 			},
+			PartitionsToAssign: PartitionMap{
+				"0": &Partition{
+					Name:         "0",
+					NodesByState: map[string][]string{},
+				},
+				"1": &Partition{
+					Name:         "1",
+					NodesByState: map[string][]string{},
+				},
+			},
 			Nodes:         []string{"a", "b"},
 			NodesToRemove: []string{"b"},
 			NodesToAdd:    []string{},
@@ -659,6 +675,16 @@ func TestPlanNextMap(t *testing.T) {
 						"primary": {"b"},
 						"replica": {"a"},
 					},
+				},
+			},
+			PartitionsToAssign: PartitionMap{
+				"0": &Partition{
+					Name:         "0",
+					NodesByState: map[string][]string{},
+				},
+				"1": &Partition{
+					Name:         "1",
+					NodesByState: map[string][]string{},
 				},
 			},
 			Nodes:         []string{"a", "b"},
@@ -712,6 +738,16 @@ func TestPlanNextMap(t *testing.T) {
 					},
 				},
 			},
+			PartitionsToAssign: PartitionMap{
+				"0": &Partition{
+					Name:         "0",
+					NodesByState: map[string][]string{},
+				},
+				"1": &Partition{
+					Name:         "1",
+					NodesByState: map[string][]string{},
+				},
+			},
 			Nodes:         []string{"a", "b", "c"},
 			NodesToRemove: []string{"c", "b", "a"},
 			NodesToAdd:    []string{},
@@ -748,6 +784,22 @@ func TestPlanNextMap(t *testing.T) {
 		{
 			About: "2 nodes, nothing to add or remove",
 			PrevMap: PartitionMap{
+				"0": &Partition{
+					Name: "0",
+					NodesByState: map[string][]string{
+						"primary": {"a"},
+						"replica": {"b"},
+					},
+				},
+				"1": &Partition{
+					Name: "1",
+					NodesByState: map[string][]string{
+						"primary": {"b"},
+						"replica": {"a"},
+					},
+				},
+			},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name: "0",
 					NodesByState: map[string][]string{
@@ -814,6 +866,16 @@ func TestPlanNextMap(t *testing.T) {
 					},
 				},
 			},
+			PartitionsToAssign: PartitionMap{
+				"0": &Partition{
+					Name:         "0",
+					NodesByState: map[string][]string{},
+				},
+				"1": &Partition{
+					Name:         "1",
+					NodesByState: map[string][]string{},
+				},
+			},
 			Nodes:         []string{"a", "b", "c"},
 			NodesToRemove: []string{"a"},
 			NodesToAdd:    []string{"c"},
@@ -863,6 +925,16 @@ func TestPlanNextMap(t *testing.T) {
 						"primary": {"b"},
 						"replica": {"a"},
 					},
+				},
+			},
+			PartitionsToAssign: PartitionMap{
+				"0": &Partition{
+					Name:         "0",
+					NodesByState: map[string][]string{},
+				},
+				"1": &Partition{
+					Name:         "1",
+					NodesByState: map[string][]string{},
 				},
 			},
 			Nodes:         []string{"a", "b", "c"},
@@ -916,6 +988,16 @@ func TestPlanNextMap(t *testing.T) {
 					},
 				},
 			},
+			PartitionsToAssign: PartitionMap{
+				"0": &Partition{
+					Name:         "0",
+					NodesByState: map[string][]string{},
+				},
+				"1": &Partition{
+					Name:         "1",
+					NodesByState: map[string][]string{},
+				},
+			},
 			Nodes:         []string{"a", "b", "c", "d"},
 			NodesToRemove: []string{"a", "b"},
 			NodesToAdd:    []string{"c", "d"},
@@ -950,8 +1032,9 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings: 0,
 		},
 		{
-			About: "add 2 nodes, 2 primaries, 1 replica",
-			PrevMap: PartitionMap{
+			About:   "add 2 nodes, 2 primaries, 1 replica",
+			PrevMap: PartitionMap{},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
 					NodesByState: map[string][]string{},
@@ -995,8 +1078,9 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings: 2,
 		},
 		{
-			About: "add 3 nodes, 2 primaries, 1 replica",
-			PrevMap: PartitionMap{
+			About:   "add 3 nodes, 2 primaries, 1 replica",
+			PrevMap: PartitionMap{},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
 					NodesByState: map[string][]string{},
@@ -1040,8 +1124,9 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings: 0,
 		},
 		{
-			About: "model state constraint override",
-			PrevMap: PartitionMap{
+			About:   "model state constraint override",
+			PrevMap: PartitionMap{},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
 					NodesByState: map[string][]string{},
@@ -1088,8 +1173,9 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings: 0,
 		},
 		{
-			About: "partition weight of 3 for partition 0",
-			PrevMap: PartitionMap{
+			About:   "partition weight of 3 for partition 0",
+			PrevMap: PartitionMap{},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
 					NodesByState: map[string][]string{},
@@ -1153,8 +1239,9 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings: 0,
 		},
 		{
-			About: "partition weight of 3 for partition 0, with 4 partitions",
-			PrevMap: PartitionMap{
+			About:   "partition weight of 3 for partition 0, with 4 partitions",
+			PrevMap: PartitionMap{},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
 					NodesByState: map[string][]string{},
@@ -1228,8 +1315,9 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings: 0,
 		},
 		{
-			About: "partition weight of 3 for partition 1, with 5 partitions",
-			PrevMap: PartitionMap{
+			About:   "partition weight of 3 for partition 1, with 5 partitions",
+			PrevMap: PartitionMap{},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
 					NodesByState: map[string][]string{},
@@ -1313,8 +1401,9 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings: 0,
 		},
 		{
-			About: "node weight of 3 for node a",
-			PrevMap: PartitionMap{
+			About:   "node weight of 3 for node a",
+			PrevMap: PartitionMap{},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
 					NodesByState: map[string][]string{},
@@ -1398,8 +1487,9 @@ func TestPlanNextMap(t *testing.T) {
 			expNumWarnings: 0,
 		},
 		{
-			About: "node weight of 3 for node b",
-			PrevMap: PartitionMap{
+			About:   "node weight of 3 for node b",
+			PrevMap: PartitionMap{},
+			PartitionsToAssign: PartitionMap{
 				"0": &Partition{
 					Name:         "0",
 					NodesByState: map[string][]string{},
@@ -1486,6 +1576,7 @@ func TestPlanNextMap(t *testing.T) {
 	for i, c := range tests {
 		r, rWarnings := PlanNextMap(
 			c.PrevMap,
+			c.PartitionsToAssign,
 			c.Nodes,
 			c.NodesToRemove,
 			c.NodesToAdd,
@@ -1504,6 +1595,7 @@ func TestPlanNextMap(t *testing.T) {
 				" [RESULT] r: %s, [EXPECTED] exp: %s",
 				i, jc, jr, jexp)
 		}
+
 		countRWarnings := 0
 		for _, warnings := range rWarnings {
 			countRWarnings += len(warnings)
@@ -1622,6 +1714,7 @@ func testVisTestCases(t *testing.T, tests []VisTestCase) {
 			}
 		}
 		r, rWarnings := PlanNextMap(
+			prevMap,
 			prevMap,
 			c.Nodes,
 			c.NodesToRemove,

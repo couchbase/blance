@@ -22,6 +22,7 @@ var MaxIterationsPerPlan = 10
 
 func planNextMapEx(
 	prevMap PartitionMap,
+	partitionsToAssign PartitionMap,
 	nodesAll []string, // Union of nodesBefore, nodesToAdd, nodesToRemove.
 	nodesToRemove []string,
 	nodesToAdd []string,
@@ -29,12 +30,26 @@ func planNextMapEx(
 	opts PlanNextMapOptions,
 ) (nextMap PartitionMap, warnings map[string][]string) {
 	for i := 0; i < MaxIterationsPerPlan; i++ { // Loop for convergence.
-		nextMap, warnings = planNextMapInnerEx(prevMap,
+		nextMap, warnings = planNextMapInnerEx(prevMap, partitionsToAssign,
 			nodesAll, nodesToRemove, nodesToAdd, model, opts)
-		if reflect.DeepEqual(nextMap, prevMap) {
+		// Only check if the partitions to be assigned match.
+		notMatch := false
+		for _, partition := range nextMap {
+			if !reflect.DeepEqual(partition, prevMap[partition.Name]) {
+				notMatch = true
+				break
+			}
+		}
+		if !notMatch {
 			break
 		}
-		prevMap = nextMap
+		// If there's nothing to be changed since it's the best fit heuristically,
+		// then abort.
+		// Need to replace only the _new_ partitions - not truncate them all.
+		for _, partition := range nextMap {
+			prevMap[partition.Name] = partition
+			partitionsToAssign[partition.Name] = partition
+		}
 		nodesAll = StringsRemoveStrings(nodesAll, nodesToRemove)
 		nodesToRemove = []string{}
 		nodesToAdd = []string{}
@@ -44,6 +59,7 @@ func planNextMapEx(
 
 func planNextMapInnerEx(
 	prevMap PartitionMap,
+	partitionsToAssign PartitionMap,
 	nodesAll []string, // Union of nodesBefore, nodesToAdd, nodesToRemove.
 	nodesToRemove []string,
 	nodesToAdd []string,
@@ -63,8 +79,8 @@ func planNextMapInnerEx(
 	hierarchyChildren := mapParentsToMapChildren(opts.NodeHierarchy)
 
 	// Start by filling out nextPartitions as a deep clone of
-	// prevMap.Partitions, but filter out the to-be-removed nodes.
-	nextPartitions := prevMap.toArrayCopy()
+	// partitionsToAssign.Partitions, but filter out the to-be-removed nodes.
+	nextPartitions := partitionsToAssign.toArrayCopy()
 	for _, partition := range nextPartitions {
 		partition.NodesByState =
 			removeNodesFromNodesByState(partition.NodesByState,
@@ -524,7 +540,7 @@ func (r *partitionSorter) Score(i int) []string {
 
 	// First, favor partitions on nodes that are to-be-removed.
 	if r.prevMap != nil &&
-		r.nodesToRemove != nil {
+		r.nodesToRemove != nil && len(r.nodesToRemove) > 0 {
 		lastPartition := r.prevMap[partitionName]
 		lpnbs := lastPartition.NodesByState[r.stateName]
 		if lpnbs != nil &&
@@ -639,6 +655,7 @@ func (ns *nodeSorter) Score(i int) float64 {
 	if ns.partition != nil {
 		for _, stateNode := range ns.partition.NodesByState[ns.stateName] {
 			if stateNode == node {
+				// Minimise movement.
 				currentFactor = ns.stickiness
 			}
 		}

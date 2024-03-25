@@ -28,7 +28,7 @@ func TestControlCase1(t *testing.T) {
 		NodeScoreBooster = nil
 	}()
 
-	partitions := PartitionMap{
+	partitionsToAssign := PartitionMap{
 		"X": &Partition{
 			Name:         "X",
 			NodesByState: map[string][]string{},
@@ -49,7 +49,7 @@ func TestControlCase1(t *testing.T) {
 	}
 
 	r, warnings := PlanNextMapEx(
-		partitions,
+		PartitionMap{}, partitionsToAssign,
 		nodes,
 		nil,
 		nil,
@@ -147,7 +147,7 @@ func TestControlCase2(t *testing.T) {
 	}
 
 	r, warnings := PlanNextMapEx(
-		partitions,
+		PartitionMap{}, partitions,
 		nodes,
 		nil,
 		nodesToAdd,
@@ -250,7 +250,7 @@ func TestControlCase3(t *testing.T) {
 	}
 
 	r, warnings := PlanNextMapEx(
-		partitions,
+		PartitionMap{}, partitions,
 		nodes,
 		nil,
 		nil,
@@ -327,6 +327,16 @@ func TestControlCase4(t *testing.T) {
 				"replica": {"b"},
 			},
 		},
+	}
+
+	partitionsToAssign := PartitionMap{
+		"X": &Partition{
+			Name: "X",
+			NodesByState: map[string][]string{
+				"primary": {"a"},
+				"replica": {"b"},
+			},
+		},
 		"Y": &Partition{
 			Name:         "Y",
 			NodesByState: map[string][]string{},
@@ -347,7 +357,7 @@ func TestControlCase4(t *testing.T) {
 	}
 
 	r, warnings := PlanNextMapEx(
-		partitions,
+		partitions, partitionsToAssign,
 		nodes,
 		nil,
 		nil,

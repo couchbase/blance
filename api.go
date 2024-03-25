@@ -108,6 +108,7 @@ type HierarchyRule struct {
 // PlanNextMapEx() and PlanNextMapOptions API's.
 func PlanNextMap(
 	prevMap PartitionMap,
+	partitionsToAssign PartitionMap,
 	nodesAll []string, // Union of nodesBefore, nodesToAdd, nodesToRemove.
 	nodesToRemove []string,
 	nodesToAdd []string,
@@ -119,7 +120,7 @@ func PlanNextMap(
 	nodeHierarchy map[string]string, // Keyed by node, value is node's parent.
 	hierarchyRules HierarchyRules,
 ) (nextMap PartitionMap, warnings map[string][]string) {
-	return PlanNextMapEx(prevMap, nodesAll, nodesToRemove, nodesToAdd,
+	return PlanNextMapEx(prevMap, partitionsToAssign, nodesAll, nodesToRemove, nodesToAdd,
 		model, PlanNextMapOptions{
 			ModelStateConstraints: modelStateConstraints,
 			PartitionWeights:      partitionWeights,
@@ -131,7 +132,9 @@ func PlanNextMap(
 }
 
 // PlanNextMapEx is the main entry point to the algorithm to assign
-// partitions to nodes.  The prevMap must define the partitions.
+// partitions to nodes.  The partitionsToAssign must define the partitions.
+// prevMap contains existing partitions' placements, which may be used
+// to influence the location of the partitions to assign.
 // Partitions must be stable between PlanNextMapEx() runs.  That is,
 // splitting and merging or partitions are an orthogonal concern and
 // must be done separately than PlanNextMapEx() invocations.  The
@@ -143,12 +146,13 @@ func PlanNextMap(
 // may reach more stabilization or balanced'ness.
 func PlanNextMapEx(
 	prevMap PartitionMap,
+	partitionsToAssign PartitionMap,
 	nodesAll []string, // Union of nodesBefore, nodesToAdd, nodesToRemove.
 	nodesToRemove []string,
 	nodesToAdd []string,
 	model PartitionModel,
 	options PlanNextMapOptions) (nextMap PartitionMap, warnings map[string][]string) {
-	return planNextMapEx(prevMap, nodesAll, nodesToRemove, nodesToAdd,
+	return planNextMapEx(prevMap, partitionsToAssign, nodesAll, nodesToRemove, nodesToAdd,
 		model, options)
 }
 
